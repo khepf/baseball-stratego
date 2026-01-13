@@ -1,0 +1,84 @@
+.game-piece {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  font-size: 0.65rem;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+.game-piece:hover {
+  transform: scale(1.05);
+}
+
+.game-piece.player1 {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  border: 2px solid #1e40af;
+  color: white;
+}
+
+.game-piece.player2 {
+  background: linear-gradient(135deg, #991b1b 0%, #ef4444 100%);
+  border: 2px solid #b91c1c;
+  color: white;
+}
+
+.game-piece.hidden {
+  background: linear-gradient(135deg, #374151 0%, #6b7280 100%);
+  border: 2px solid #4b5563;
+}
+
+.piece-content {
+  text-align: center;
+  width: 100%;
+  line-height: 1.2;
+}
+
+.piece-rank {
+  font-weight: bold;
+  font-size: 0.7rem;
+  margin-bottom: 2px;
+}
+
+.piece-number {
+  font-size: 0.9rem;
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.piece-team {
+  font-size: 0.55rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.piece-year {
+  font-size: 0.5rem;
+  opacity: 0.9;
+}
+
+.piece-record {
+  font-size: 0.5rem;
+  opacity: 0.85;
+}
+
+.piece-pct {
+  font-size: 0.5rem;
+  font-weight: bold;
+  opacity: 0.9;
+}
+
+.hidden-content {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.piece-back {
+  color: rgba(255, 255, 255, 0.5);
+}

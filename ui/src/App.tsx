@@ -1,0 +1,118 @@
+import { useGameLogic } from "./hooks/useGameLogic";
+import { GameBoard } from "./components/GameBoard";
+import { CapturedPieces } from "./components/CapturedPieces";
+import "./App.css";
+
+function App() {
+  const { gameState, isLoading, error, fetchTeamData, selectPiece, resetGame } =
+    useGameLogic();
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <h1>⚾ Baseball Stratego ⚾</h1>
+        <p className="subtitle">
+          A strategic battle of baseball's greatest teams
+        </p>
+      </header>
+
+      <main className="app-main">
+        {gameState.gamePhase === "setup" && (
+          <div className="setup-screen">
+            <h2>Welcome to Baseball Stratego!</h2>
+            <p>
+              Click below to fetch random baseball teams and start the game.
+            </p>
+            <button
+              onClick={fetchTeamData}
+              disabled={isLoading}
+              className="start-button"
+            >
+              {isLoading ? "Loading Teams..." : "Start New Game"}
+            </button>
+            {error && <div className="error-message">Error: {error}</div>}
+
+            <div className="rules">
+              <h3>How to Play:</h3>
+              <ul>
+                <li>
+                  Each player controls 40 baseball team pieces ranked by win
+                  percentage
+                </li>
+                <li>
+                  Click a piece to select it, then click a highlighted square to
+                  move
+                </li>
+                <li>Higher-ranked teams defeat lower-ranked teams in battle</li>
+                <li>
+                  Special rules: Spy (lowest) can capture Marshal (highest)
+                </li>
+                <li>
+                  Miners can defuse Bombs, Scouts can move multiple squares
+                </li>
+                <li>Capture the opponent's Flag to win!</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {gameState.gamePhase === "playing" && (
+          <div className="game-screen">
+            <div className="game-info">
+              <div className="current-player">
+                <h2>Current Turn: Player {gameState.currentPlayer}</h2>
+                <div
+                  className={`player-indicator player${gameState.currentPlayer}`}
+                ></div>
+              </div>
+
+              {gameState.selectedPiece && (
+                <div className="selected-piece-info">
+                  <h3>Selected Piece:</h3>
+                  <p>
+                    <strong>{gameState.selectedPiece.piece.rank}</strong>
+                  </p>
+                  <p>{gameState.selectedPiece.piece.teamData.teamName}</p>
+                  <p>
+                    {gameState.selectedPiece.piece.teamData.year} (
+                    {gameState.selectedPiece.piece.teamData.wins}-
+                    {gameState.selectedPiece.piece.teamData.losses})
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <GameBoard
+              board={gameState.board}
+              currentPlayer={gameState.currentPlayer}
+              onSquareClick={selectPiece}
+            />
+
+            <div className="sidebar">
+              <button onClick={resetGame} className="reset-button">
+                New Game
+              </button>
+
+              <CapturedPieces pieces={gameState.capturedPieces} player={1} />
+              <CapturedPieces pieces={gameState.capturedPieces} player={2} />
+            </div>
+          </div>
+        )}
+
+        {gameState.gamePhase === "finished" && (
+          <div className="game-over-screen">
+            <h2>🎉 Game Over! 🎉</h2>
+            <h1 className={`winner player${gameState.winner}`}>
+              Player {gameState.winner} Wins!
+            </h1>
+            <button onClick={resetGame} className="play-again-button">
+              Play Again
+            </button>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+export default App;

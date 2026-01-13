@@ -1,0 +1,39 @@
+.captured-pieces {
+  margin: 20px 0;
+  padding: 15px;
+  border-radius: 8px;
+  background: #f7fafc;
+  border: 2px solid #cbd5e0;
+}
+
+.captured-pieces.player1 {
+  border-color: #3b82f6;
+}
+
+.captured-pieces.player2 {
+  border-color: #ef4444;
+}
+
+.captured-pieces h3 {
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+  color: #2d3748;
+}
+
+.captured-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.captured-piece-wrapper {
+  width: 50px;
+  height: 50px;
+}
+
+.captured-count {
+  font-weight: bold;
+  color: #4a5568;
+  font-size: 0.9rem;
+}
