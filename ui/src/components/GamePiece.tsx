@@ -25,7 +25,14 @@ export const GamePiece = ({
     >
       {shouldReveal ? (
         <>
-          <div className="piece-number-bg">
+          <div
+            className={`piece-number-bg ${
+              piece.teamData.pieceNumberOrLetter === "B" ||
+              piece.teamData.pieceNumberOrLetter === "F"
+                ? "centered-icon"
+                : ""
+            }`}
+          >
             {piece.teamData.pieceNumberOrLetter === "B"
               ? "💣"
               : piece.teamData.pieceNumberOrLetter === "F"
@@ -33,12 +40,13 @@ export const GamePiece = ({
               : piece.teamData.pieceNumberOrLetter}
           </div>
           <div className="piece-content">
-            {piece.rank !== "Bomb" && piece.rank !== "Flag" && (
+            {/* {piece.rank !== "Bomb" && piece.rank !== "Flag" && (
               <div className="piece-rank">{piece.rank}</div>
-            )}
+            )} */}
             {piece.teamData.teamName && (
               <>
                 <div className="piece-year">{piece.teamData.year}</div>
+                <div className="piece-city">{piece.teamData.city}</div>
                 <div className="piece-team">{piece.teamData.teamName}</div>
                 <div className="piece-record">
                   {piece.teamData.wins}-{piece.teamData.losses}

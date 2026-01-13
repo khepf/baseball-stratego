@@ -36,18 +36,22 @@
 
 .piece-number-bg {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 48px;
+  top: -2px;
+  left: 0px;
+  font-size: 1.2rem;
   font-weight: bold;
   color: black;
-  /* opacity: 0.8; */
+  opacity: 0.9;
   line-height: 1;
   z-index: 1;
   pointer-events: none;
 }
-
+.piece-number-bg.centered-icon {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 3rem;
+}
 .piece-content {
   text-align: center;
   width: 100%;
@@ -62,8 +66,9 @@
   margin-bottom: 2px;
 }
 
-.piece-team {
-  font-size: 0.55rem;
+.piece-team,
+.piece-city {
+  font-size: 0.54rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -71,12 +76,10 @@
 
 .piece-year {
   font-size: 0.5rem;
-  opacity: 0.9;
 }
 
 .piece-record {
   font-size: 0.5rem;
-  opacity: 0.85;
 }
 
 .piece-pct {
