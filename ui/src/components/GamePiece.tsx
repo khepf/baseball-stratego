@@ -26,19 +26,20 @@ export const GamePiece = ({
       {shouldReveal ? (
         <>
           <div className="piece-number-bg">
-            {piece.teamData.pieceNumberOrLetter}
+            {piece.teamData.pieceNumberOrLetter === "B"
+              ? "💣"
+              : piece.teamData.pieceNumberOrLetter === "F"
+              ? "🚩"
+              : piece.teamData.pieceNumberOrLetter}
           </div>
           <div className="piece-content">
             <div className="piece-rank">{piece.rank}</div>
             {piece.teamData.teamName && (
               <>
-                <div className="piece-team">{piece.teamData.teamName}</div>
                 <div className="piece-year">{piece.teamData.year}</div>
+                <div className="piece-team">{piece.teamData.teamName}</div>
                 <div className="piece-record">
                   {piece.teamData.wins}-{piece.teamData.losses}
-                </div>
-                <div className="piece-pct">
-                  {piece.teamData.winPercentage.toFixed(3)}
                 </div>
               </>
             )}
