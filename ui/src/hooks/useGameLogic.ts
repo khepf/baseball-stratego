@@ -75,8 +75,19 @@ export const useGameLogic = () => {
 
   const setupPieces = (data: TeamData[]) => {
     const newBoard = initializeBoard();
-    const player1Pieces = data.filter((d) => d.playerNumber === "1");
-    const player2Pieces = data.filter((d) => d.playerNumber === "2");
+
+    // Shuffle function
+    const shuffle = <T>(array: T[]): T[] => {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    };
+
+    const player1Pieces = shuffle(data.filter((d) => d.playerNumber === "1"));
+    const player2Pieces = shuffle(data.filter((d) => d.playerNumber === "2"));
 
     // Place Player 1 pieces (bottom 4 rows, rows 6-9)
     let pieceIndex = 0;
