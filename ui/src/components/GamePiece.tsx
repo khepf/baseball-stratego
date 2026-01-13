@@ -33,7 +33,9 @@ export const GamePiece = ({
               : piece.teamData.pieceNumberOrLetter}
           </div>
           <div className="piece-content">
-            <div className="piece-rank">{piece.rank}</div>
+            {piece.rank !== "Bomb" && piece.rank !== "Flag" && (
+              <div className="piece-rank">{piece.rank}</div>
+            )}
             {piece.teamData.teamName && (
               <>
                 <div className="piece-year">{piece.teamData.year}</div>
