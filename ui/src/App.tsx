@@ -45,17 +45,28 @@ function App() {
             <button
               onClick={handleStartNewGame}
               disabled={isLoading}
-              className="start-button"
+              className={`start-button ${isLoading ? "loading" : ""}`}
             >
+              {isLoading && <span className="spinner"></span>}
               {isLoading ? "Loading Teams..." : "Start New Game"}
             </button>
-            {error && <div className="error-message">Error: {error}</div>}
+            {error && (
+              <div className="error-message">
+                <span className="error-icon">⚠️</span>
+                <div>
+                  <strong>Error:</strong> {error}
+                  <p className="error-hint">
+                    Please check your API connection and try again.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="rules">
               <h3>How to Play:</h3>
               <ul>
                 <li>
-                  Each player controls 40 baseball team pieces ranked by win
+                  You control 40 historicalbaseball team pieces ranked by win
                   percentage
                 </li>
                 <li>
@@ -64,7 +75,8 @@ function App() {
                 </li>
                 <li>Higher-ranked teams defeat lower-ranked teams in battle</li>
                 <li>
-                  Special rules: Spy (lowest) can capture Marshal (highest)
+                  Special rules: Spy (lowest) can capture Marshal (highest) when
+                  attacking
                 </li>
                 <li>
                   Miners can defuse Bombs, Scouts can move multiple squares
@@ -112,7 +124,7 @@ function App() {
 
             <div className="sidebar">
               <button onClick={resetGame} className="reset-button">
-                New Game
+                Main Menu
               </button>
 
               <CapturedPieces pieces={gameState.capturedPieces} player={1} />

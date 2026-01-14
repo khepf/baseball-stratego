@@ -41,6 +41,9 @@
   font-weight: bold;
   transition: all 0.3s;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .start-button:hover:not(:disabled) {
@@ -49,17 +52,70 @@
 }
 
 .start-button:disabled {
-  opacity: 0.5;
+  opacity: 0.7;
   cursor: not-allowed;
+}
+
+.start-button.loading {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error-message {
   color: #fc8181;
   margin-top: 1rem;
-  padding: 1rem;
+  padding: 1.25rem;
   background: rgba(254, 178, 178, 0.1);
   border-radius: 8px;
-  border: 1px solid #fc8181;
+  border: 2px solid #fc8181;
+  display: flex;
+  align-items: start;
+  gap: 1rem;
+  text-align: left;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+.error-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.error-message strong {
+  color: #fee;
+  font-size: 1.1rem;
+}
+
+.error-hint {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.9rem;
+  opacity: 0.8;
 }
 
 .rules {

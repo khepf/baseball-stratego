@@ -71,9 +71,8 @@ export default defineConfig([
   },
 ])
 ```
+- loading / error indicator for start new game while waiting to fetch teams from api. 
 - push to prod
 - GA
-- make How To Play better ui
 - add some animations
-- add arrow from last move of opponent
 - board backgrounds
