@@ -1,0 +1,80 @@
+.move-history {
+  background: #2d3748;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  height: fit-content;
+  max-height: 600px;
+  display: flex;
+  flex-direction: column;
+}
+
+.move-history h3 {
+  margin: 0 0 1rem 0;
+  color: #63b3ed;
+  font-size: 1.1rem;
+  border-bottom: 2px solid #4a5568;
+  padding-bottom: 0.5rem;
+}
+
+.move-list {
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.move-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.move-list::-webkit-scrollbar-track {
+  background: #1a202c;
+  border-radius: 3px;
+}
+
+.move-list::-webkit-scrollbar-thumb {
+  background: #4a5568;
+  border-radius: 3px;
+}
+
+.move-list::-webkit-scrollbar-thumb:hover {
+  background: #63b3ed;
+}
+
+.no-moves {
+  color: #a0aec0;
+  font-style: italic;
+  text-align: center;
+  margin: 2rem 0;
+}
+
+.move-item {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.move-item.player1 {
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 3px solid #3b82f6;
+}
+
+.move-item.player2 {
+  background: rgba(239, 68, 68, 0.1);
+  border-left: 3px solid #ef4444;
+}
+
+.move-number {
+  color: #a0aec0;
+  font-weight: bold;
+  min-width: 2rem;
+}
+
+.move-text {
+  color: #e2e8f0;
+}

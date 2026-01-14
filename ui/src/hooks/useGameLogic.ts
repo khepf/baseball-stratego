@@ -288,12 +288,22 @@ export const useGameLogic = () => {
         newBoard[from.row][from.col].piece = null;
       }
 
+      // Create move history entry
+      const move = {
+        from,
+        to,
+        piece: movingPiece,
+        capturedPiece: targetPiece || undefined,
+        timestamp: Date.now(),
+      };
+
       return {
         ...prev,
         board: newBoard,
         selectedPiece: null,
         currentPlayer: prev.currentPlayer === 1 ? 2 : (1 as 1 | 2),
         capturedPieces,
+        moveHistory: [...prev.moveHistory, move],
       };
     });
   }, []);

@@ -2,6 +2,7 @@ import { useGameLogic } from "./hooks/useGameLogic";
 import { GameBoard } from "./components/GameBoard";
 import { CapturedPieces } from "./components/CapturedPieces";
 import { Header } from "./components/Header";
+import { MoveHistory } from "./components/MoveHistory";
 import "./App.css";
 
 function App() {
@@ -54,6 +55,8 @@ function App() {
 
         {gameState.gamePhase === "playing" && (
           <div className="game-screen">
+            
+
             <div className="game-info">
               <div className="current-player">
                 <h2>Current Turn: Player {gameState.currentPlayer}</h2>
@@ -77,6 +80,8 @@ function App() {
                 </div>
               )}
             </div>
+
+            <MoveHistory moves={gameState.moveHistory} />
 
             <GameBoard
               board={gameState.board}
