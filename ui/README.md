@@ -71,8 +71,8 @@ export default defineConfig([
   },
 ])
 ```
-- tie and bomb defuse
+- tie
 - GA
 - board backgrounds
 - order captured pieces by number
-- dont play the winSoundFile or loseSoundFile if it is either flag that is ca
+- dont play the winSoundFile or loseSoundFile if it is either flag that is captured. Right now when a flag is captured it is playing the winSoundFile and then the gameWinFile

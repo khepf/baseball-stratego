@@ -12,8 +12,11 @@ import { StrategoAI } from "../utils/ai";
 import bombSoundFile from "../assets/sounds/bomb.mp3";
 import winSoundFile from "../assets/sounds/whip-win.mp3";
 import loseSoundFile from "../assets/sounds/zeus-lose.mp3";
+import drawSoundFile from "../assets/sounds/draw-sound.mp3";
 import pieceMoveFile from "../assets/sounds/piece-move.wav";
 import gameWinFile from "../assets/sounds/game-win.mp3";
+import gameLoseFile from "../assets/sounds/game-lose.mp3";
+import bombDefuseFile from "../assets/sounds/bomb-defuse.mp3";
 
 const BOARD_SIZE = 10;
 
@@ -271,11 +274,27 @@ export const useGameLogic = () => {
         battleResult = result;
 
         // Play sound effects based on battle outcome
-        // Check if defender is a bomb
-        if (targetPiece.rank === "Bomb") {
+        // Check if miner defuses a bomb
+        if (movingPiece.rank === "Miner" && targetPiece.rank === "Bomb") {
+          const bombDefuseSound = new Audio(bombDefuseFile);
+          bombDefuseSound.volume = 0.5;
+          bombDefuseSound
+            .play()
+            .catch((err) => console.log("Audio play failed:", err));
+        } else if (targetPiece.rank === "Bomb") {
+          // Other pieces hitting bomb
           const bombSound = new Audio(bombSoundFile);
           bombSound.volume = 0.5;
           bombSound
+            .play()
+            .catch((err) => console.log("Audio play failed:", err));
+        } else if (targetPiece.rank === "Flag") {
+          // Skip battle sounds for flag capture - game win/lose sounds will play instead
+        } else if (result === "tie") {
+          // Draw/tie - both pieces same rank
+          const drawSound = new Audio(drawSoundFile);
+          drawSound.volume = 0.5;
+          drawSound
             .play()
             .catch((err) => console.log("Audio play failed:", err));
         } else if (result === "attacker-wins" && movingPiece.player === 1) {
@@ -339,11 +358,17 @@ export const useGameLogic = () => {
 
         // Check for flag capture
         if (targetPiece.rank === "Flag") {
-          // Play game win sound if player 1 wins
+          // Play game win sound if player 1 wins, lose sound if player 2 wins
           if (movingPiece.player === 1) {
             const gameWinSound = new Audio(gameWinFile);
             gameWinSound.volume = 0.6;
             gameWinSound
+              .play()
+              .catch((err) => console.log("Audio play failed:", err));
+          } else {
+            const gameLoseSound = new Audio(gameLoseFile);
+            gameLoseSound.volume = 0.6;
+            gameLoseSound
               .play()
               .catch((err) => console.log("Audio play failed:", err));
           }
