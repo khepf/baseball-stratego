@@ -17,15 +17,25 @@ export const MoveHistory = ({ moves }: MoveHistoryProps) => {
     const fromPos = formatPosition(move.from);
     const toPos = formatPosition(move.to);
 
-    let moveText = `${player}: ${move.piece.rank} ${fromPos}→${toPos}`;
+    // If there's a battle, always reveal both pieces
+    // Otherwise, only show rank for Player 1 or already revealed pieces
+    const isBattle = !!move.capturedPiece;
+    const showMovingPieceRank =
+      isBattle || move.piece.player === 1 || move.piece.isRevealed;
+    const movingPieceRank = showMovingPieceRank ? move.piece.rank : "???";
+
+    let moveText = `${player}: ${movingPieceRank} ${fromPos}→${toPos}`;
 
     if (move.capturedPiece) {
+      // Always show captured piece rank in battles
+      const capturedPieceRank = move.capturedPiece.rank;
+
       if (move.battleResult === "defender-wins") {
-        moveText += ` (captured by ${move.capturedPiece.rank})`;
+        moveText += ` (captured by ${capturedPieceRank})`;
       } else if (move.battleResult === "tie") {
-        moveText += ` (tied with ${move.capturedPiece.rank})`;
+        moveText += ` (tied with ${capturedPieceRank})`;
       } else {
-        moveText += ` (captured ${move.capturedPiece.rank})`;
+        moveText += ` (captured ${capturedPieceRank})`;
       }
     }
 
