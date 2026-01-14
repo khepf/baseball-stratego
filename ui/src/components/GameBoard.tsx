@@ -10,7 +10,6 @@ interface GameBoardProps {
 
 export const GameBoard = ({
   board,
-  currentPlayer,
   onSquareClick,
 }: GameBoardProps) => {
   return (
@@ -33,7 +32,7 @@ export const GameBoard = ({
                 square.piece && (
                   <GamePiece
                     piece={square.piece}
-                    isCurrentPlayer={square.piece.player === currentPlayer}
+                    isCurrentPlayer={square.piece.player === 1}
                   />
                 )
               )}

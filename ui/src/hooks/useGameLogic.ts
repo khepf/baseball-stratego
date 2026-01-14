@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type {
   GameState,
   GamePiece,
@@ -7,6 +7,7 @@ import type {
   TeamData,
 } from "../types/game.ts";
 import { RANK_VALUES } from "../types/game.ts";
+import { StrategoAI } from "../utils/ai";
 
 const BOARD_SIZE = 10;
 
@@ -36,6 +37,7 @@ export const useGameLogic = () => {
   const [teamData, setTeamData] = useState<TeamData[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ai] = useState(() => new StrategoAI());
 
   function initializeBoard(): BoardSquare[][] {
     const board: BoardSquare[][] = [];
@@ -239,75 +241,62 @@ export const useGameLogic = () => {
     return validMoves;
   };
 
-  const movePiece = (from: Position, to: Position) => {
-    const newBoard = gameState.board.map((row) =>
-      row.map((square) => ({ ...square, isHighlighted: false }))
-    );
-    const movingPiece = newBoard[from.row][from.col].piece!;
-    const targetPiece = newBoard[to.row][to.col].piece;
+  const movePiece = useCallback((from: Position, to: Position) => {
+    setGameState((prev) => {
+      const newBoard = prev.board.map((row) =>
+        row.map((square) => ({ ...square, isHighlighted: false }))
+      );
+      const movingPiece = newBoard[from.row][from.col].piece!;
+      const targetPiece = newBoard[to.row][to.col].piece;
 
-    if (targetPiece) {
-      // Battle!
-      const result = resolveBattle(movingPiece, targetPiece);
+      const capturedPieces = [...prev.capturedPieces];
 
-      if (result === "attacker-wins") {
-        newBoard[to.row][to.col].piece = { ...movingPiece, isRevealed: true };
-        newBoard[from.row][from.col].piece = null;
-        setGameState((prev) => ({
-          ...prev,
-          capturedPieces: [
-            ...prev.capturedPieces,
-            { ...targetPiece, isCaptured: true },
-          ],
-        }));
-      } else if (result === "defender-wins") {
-        newBoard[from.row][from.col].piece = null;
-        newBoard[to.row][to.col].piece = { ...targetPiece, isRevealed: true };
-        setGameState((prev) => ({
-          ...prev,
-          capturedPieces: [
-            ...prev.capturedPieces,
-            { ...movingPiece, isCaptured: true },
-          ],
-        }));
+      if (targetPiece) {
+        // Battle!
+        const result = resolveBattle(movingPiece, targetPiece);
+
+        if (result === "attacker-wins") {
+          newBoard[to.row][to.col].piece = { ...movingPiece, isRevealed: true };
+          newBoard[from.row][from.col].piece = null;
+          capturedPieces.push({ ...targetPiece, isCaptured: true });
+        } else if (result === "defender-wins") {
+          newBoard[from.row][from.col].piece = null;
+          newBoard[to.row][to.col].piece = { ...targetPiece, isRevealed: true };
+          capturedPieces.push({ ...movingPiece, isCaptured: true });
+        } else {
+          // Both pieces removed
+          newBoard[from.row][from.col].piece = null;
+          newBoard[to.row][to.col].piece = null;
+          capturedPieces.push({ ...movingPiece, isCaptured: true });
+          capturedPieces.push({ ...targetPiece, isCaptured: true });
+        }
+
+        // Check for flag capture
+        if (targetPiece.rank === "Flag") {
+          return {
+            ...prev,
+            board: newBoard,
+            selectedPiece: null,
+            gamePhase: "finished" as const,
+            winner: movingPiece.player,
+            capturedPieces,
+          };
+        }
       } else {
-        // Both pieces removed
+        // Simple move
+        newBoard[to.row][to.col].piece = movingPiece;
         newBoard[from.row][from.col].piece = null;
-        newBoard[to.row][to.col].piece = null;
-        setGameState((prev) => ({
-          ...prev,
-          capturedPieces: [
-            ...prev.capturedPieces,
-            { ...movingPiece, isCaptured: true },
-            { ...targetPiece, isCaptured: true },
-          ],
-        }));
       }
 
-      // Check for flag capture
-      if (targetPiece.rank === "Flag") {
-        setGameState((prev) => ({
-          ...prev,
-          board: newBoard,
-          selectedPiece: null,
-          gamePhase: "finished",
-          winner: movingPiece.player,
-        }));
-        return;
-      }
-    } else {
-      // Simple move
-      newBoard[to.row][to.col].piece = movingPiece;
-      newBoard[from.row][from.col].piece = null;
-    }
-
-    setGameState((prev) => ({
-      ...prev,
-      board: newBoard,
-      selectedPiece: null,
-      currentPlayer: prev.currentPlayer === 1 ? 2 : 1,
-    }));
-  };
+      return {
+        ...prev,
+        board: newBoard,
+        selectedPiece: null,
+        currentPlayer: prev.currentPlayer === 1 ? 2 : (1 as 1 | 2),
+        capturedPieces,
+      };
+    });
+  }, []);
 
   const resolveBattle = (
     attacker: GamePiece,
@@ -342,6 +331,31 @@ export const useGameLogic = () => {
       ),
     }));
   };
+
+  // AI move logic - triggers when it's AI's turn
+  useEffect(() => {
+    if (
+      gameState.currentPlayer === 2 &&
+      gameState.gamePhase === "playing" &&
+      !gameState.winner
+    ) {
+      const timer = setTimeout(() => {
+        const aiMove = ai.getBestMove(gameState);
+        if (aiMove) {
+          movePiece(aiMove.from, aiMove.to);
+        }
+      }, 800); // 800ms delay so human can see what's happening
+
+      return () => clearTimeout(timer);
+    }
+  }, [
+    gameState.currentPlayer,
+    gameState.gamePhase,
+    gameState.winner,
+    gameState,
+    ai,
+    movePiece,
+  ]);
 
   const resetGame = useCallback(() => {
     setGameState({
