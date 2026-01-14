@@ -12,6 +12,8 @@ import { StrategoAI } from "../utils/ai";
 import bombSoundFile from "../assets/sounds/bomb.mp3";
 import winSoundFile from "../assets/sounds/whip-win.mp3";
 import loseSoundFile from "../assets/sounds/zeus-lose.mp3";
+import pieceMoveFile from "../assets/sounds/piece-move.wav";
+import gameWinFile from "../assets/sounds/game-win.mp3";
 
 const BOARD_SIZE = 10;
 
@@ -337,6 +339,15 @@ export const useGameLogic = () => {
 
         // Check for flag capture
         if (targetPiece.rank === "Flag") {
+          // Play game win sound if player 1 wins
+          if (movingPiece.player === 1) {
+            const gameWinSound = new Audio(gameWinFile);
+            gameWinSound.volume = 0.6;
+            gameWinSound
+              .play()
+              .catch((err) => console.log("Audio play failed:", err));
+          }
+
           return {
             ...prev,
             board: newBoard,
@@ -350,6 +361,11 @@ export const useGameLogic = () => {
         // Simple move
         newBoard[to.row][to.col].piece = movingPiece;
         newBoard[from.row][from.col].piece = null;
+
+        // Play piece move sound for non-battle moves
+        const moveSound = new Audio(pieceMoveFile);
+        moveSound.volume = 0.3;
+        moveSound.play().catch((err) => console.log("Audio play failed:", err));
       }
 
       // Create move history entry

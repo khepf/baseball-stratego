@@ -71,6 +71,8 @@ export default defineConfig([
   },
 ])
 ```
-- push to prod
+- tie and bomb defuse
 - GA
 - board backgrounds
+- order captured pieces by number
+- dont play the winSoundFile or loseSoundFile if it is either flag that is ca
