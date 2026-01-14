@@ -107,6 +107,7 @@ function App() {
               board={gameState.board}
               currentPlayer={gameState.currentPlayer}
               onSquareClick={selectPiece}
+              lastOpponentMove={gameState.lastOpponentMove}
             />
 
             <div className="sidebar">

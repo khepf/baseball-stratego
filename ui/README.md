@@ -76,3 +76,4 @@ export default defineConfig([
 - make How To Play better ui
 - add some animations
 - add arrow from last move of opponent
+- board backgrounds

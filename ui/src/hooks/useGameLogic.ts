@@ -32,6 +32,7 @@ export const useGameLogic = () => {
     winner: null,
     capturedPieces: [],
     moveHistory: [],
+    lastOpponentMove: null,
   });
 
   const [teamData, setTeamData] = useState<TeamData[] | null>(null);
@@ -125,6 +126,7 @@ export const useGameLogic = () => {
       ...prev,
       board: newBoard,
       gamePhase: "playing",
+      lastOpponentMove: null,
     }));
   };
 
@@ -300,13 +302,17 @@ export const useGameLogic = () => {
         timestamp: Date.now(),
       };
 
+      const nextPlayer = prev.currentPlayer === 1 ? 2 : (1 as 1 | 2);
+
       return {
         ...prev,
         board: newBoard,
         selectedPiece: null,
-        currentPlayer: prev.currentPlayer === 1 ? 2 : (1 as 1 | 2),
+        currentPlayer: nextPlayer,
         capturedPieces,
         moveHistory: [...prev.moveHistory, move],
+        // Only track Player 2 moves to show arrow to Player 1
+        lastOpponentMove: movingPiece.player === 2 ? { from, to } : null,
       };
     });
   }, []);
@@ -379,6 +385,7 @@ export const useGameLogic = () => {
       winner: null,
       capturedPieces: [],
       moveHistory: [],
+      lastOpponentMove: null,
     });
     setTeamData(null);
   }, []);

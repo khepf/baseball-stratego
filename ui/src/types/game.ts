@@ -39,6 +39,7 @@ export interface GameState {
   winner: 1 | 2 | null;
   capturedPieces: GamePiece[];
   moveHistory: Move[];
+  lastOpponentMove: { from: Position; to: Position } | null;
 }
 
 export interface Move {

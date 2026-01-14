@@ -120,3 +120,29 @@
   font-size: 2rem;
   opacity: 0.6;
 }
+
+.move-arrow {
+  position: absolute;
+  font-size: 2rem;
+  color: #f59e0b;
+  font-weight: bold;
+  pointer-events: none;
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.8),
+    0 0 20px rgba(245, 158, 11, 0.6);
+  animation: pulse-arrow 1.5s ease-in-out infinite;
+  z-index: 10;
+}
+
+@keyframes pulse-arrow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.board-square.has-arrow {
+  background: rgba(245, 158, 11, 0.15);
+}
