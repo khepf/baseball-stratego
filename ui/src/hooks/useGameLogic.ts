@@ -17,6 +17,7 @@ import pieceMoveFile from "../assets/sounds/piece-move.wav";
 import gameWinFile from "../assets/sounds/game-win.mp3";
 import gameLoseFile from "../assets/sounds/game-lose.mp3";
 import bombDefuseFile from "../assets/sounds/bomb-defuse.mp3";
+import playBallFile from "../assets/sounds/play-ball.mp3";
 
 const BOARD_SIZE = 10;
 
@@ -83,6 +84,13 @@ export const useGameLogic = () => {
       const data: TeamData[] = await response.json();
       setTeamData(data);
       setupPieces(data);
+
+      // Play sound when teams are loaded successfully
+      const playBallSound = new Audio(playBallFile);
+      playBallSound.volume = 0.5;
+      playBallSound
+        .play()
+        .catch((err) => console.log("Audio play failed:", err));
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
