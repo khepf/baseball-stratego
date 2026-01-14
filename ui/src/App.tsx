@@ -5,9 +5,31 @@ import { Header } from "./components/Header";
 import { MoveHistory } from "./components/MoveHistory";
 import "./App.css";
 
+// Declare gtag for TypeScript
+declare global {
+  interface Window {
+    gtag?: (
+      command: string,
+      targetId: string,
+      config?: Record<string, unknown>
+    ) => void;
+  }
+}
+
 function App() {
   const { gameState, isLoading, error, fetchTeamData, selectPiece, resetGame } =
     useGameLogic();
+
+  const handleStartNewGame = () => {
+    // Track the event in Google Analytics
+    if (window.gtag) {
+      window.gtag("event", "start_new_game", {
+        event_category: "game",
+        event_label: "Start New Game Button",
+      });
+    }
+    fetchTeamData();
+  };
 
   return (
     <div className="app">
@@ -16,12 +38,12 @@ function App() {
       <main className="app-main">
         {gameState.gamePhase === "setup" && (
           <div className="setup-screen">
-            <h2>Welcome to Baseball Stratego!</h2>
+            <h2>Welcome to Baseball Strategery!</h2>
             <p>
               Click below to fetch random baseball teams and start the game.
             </p>
             <button
-              onClick={fetchTeamData}
+              onClick={handleStartNewGame}
               disabled={isLoading}
               className="start-button"
             >
@@ -55,8 +77,6 @@ function App() {
 
         {gameState.gamePhase === "playing" && (
           <div className="game-screen">
-            
-
             <div className="game-info">
               <div className="current-player">
                 <h2>Current Turn: Player {gameState.currentPlayer}</h2>

@@ -71,3 +71,8 @@ export default defineConfig([
   },
 ])
 ```
+- push to prod
+- GA
+- make How To Play better ui
+- add some animations
+- add arrow from last move of opponent
