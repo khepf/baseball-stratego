@@ -9,6 +9,10 @@ import type {
 import { RANK_VALUES } from "../types/game.ts";
 import { StrategoAI } from "../utils/ai";
 
+import bombSoundFile from "../assets/sounds/bomb.mp3";
+import winSoundFile from "../assets/sounds/whip-win.mp3";
+import loseSoundFile from "../assets/sounds/zeus-lose.mp3";
+
 const BOARD_SIZE = 10;
 
 // Lake positions in classic Stratego (4,2), (4,3), (5,2), (5,3), (4,6), (4,7), (5,6), (5,7)
@@ -66,7 +70,8 @@ export const useGameLogic = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("https://localhost:5001/api/teams/random");
+      const apiUrl = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${apiUrl}/api/teams/random`);
       if (!response.ok) {
         throw new Error("Failed to fetch team data");
       }
@@ -266,35 +271,35 @@ export const useGameLogic = () => {
         // Play sound effects based on battle outcome
         // Check if defender is a bomb
         if (targetPiece.rank === "Bomb") {
-          const bombSound = new Audio("/src/assets/sounds/bomb.mp3");
+          const bombSound = new Audio(bombSoundFile);
           bombSound.volume = 0.5;
           bombSound
             .play()
             .catch((err) => console.log("Audio play failed:", err));
         } else if (result === "attacker-wins" && movingPiece.player === 1) {
           // P1 wins
-          const winSound = new Audio("/src/assets/sounds/whip-win.mp3");
+          const winSound = new Audio(winSoundFile);
           winSound.volume = 0.5;
           winSound
             .play()
             .catch((err) => console.log("Audio play failed:", err));
         } else if (result === "defender-wins" && targetPiece.player === 2) {
           // P2 wins (defender is P2)
-          const loseSound = new Audio("/src/assets/sounds/zeus-lose.mp3");
+          const loseSound = new Audio(loseSoundFile);
           loseSound.volume = 0.5;
           loseSound
             .play()
             .catch((err) => console.log("Audio play failed:", err));
         } else if (result === "attacker-wins" && movingPiece.player === 2) {
           // P2 wins (attacker is P2)
-          const loseSound = new Audio("/src/assets/sounds/zeus-lose.mp3");
+          const loseSound = new Audio(loseSoundFile);
           loseSound.volume = 0.5;
           loseSound
             .play()
             .catch((err) => console.log("Audio play failed:", err));
         } else if (result === "defender-wins" && targetPiece.player === 1) {
           // P1 wins (defender is P1)
-          const winSound = new Audio("/src/assets/sounds/whip-win.mp3");
+          const winSound = new Audio(winSoundFile);
           winSound.volume = 0.5;
           winSound
             .play()
