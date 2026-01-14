@@ -1,6 +1,7 @@
 import { useGameLogic } from "./hooks/useGameLogic";
 import { GameBoard } from "./components/GameBoard";
 import { CapturedPieces } from "./components/CapturedPieces";
+import { Header } from "./components/Header";
 import "./App.css";
 
 function App() {
@@ -9,12 +10,7 @@ function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>⚾ Baseball Stratego ⚾</h1>
-        <p className="subtitle">
-          A strategic battle of baseball's greatest teams
-        </p>
-      </header>
+      <Header />
 
       <main className="app-main">
         {gameState.gamePhase === "setup" && (
