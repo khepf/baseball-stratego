@@ -17,8 +17,15 @@ declare global {
 }
 
 function App() {
-  const { gameState, isLoading, error, fetchTeamData, selectPiece, resetGame } =
-    useGameLogic();
+  const {
+    gameState,
+    isLoading,
+    error,
+    fetchTeamData,
+    selectPiece,
+    resetGame,
+    battlePosition,
+  } = useGameLogic();
 
   const handleStartNewGame = () => {
     // Track the event in Google Analytics
@@ -66,7 +73,7 @@ function App() {
               <h3>How to Play:</h3>
               <ul>
                 <li>
-                  You control 40 historicalbaseball team pieces ranked by win
+                  You control 40 historical baseball team pieces ranked by win
                   percentage
                 </li>
                 <li>
@@ -120,6 +127,7 @@ function App() {
               currentPlayer={gameState.currentPlayer}
               onSquareClick={selectPiece}
               lastOpponentMove={gameState.lastOpponentMove}
+              battlePosition={battlePosition}
             />
 
             <div className="sidebar">

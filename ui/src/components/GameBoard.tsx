@@ -7,12 +7,14 @@ interface GameBoardProps {
   currentPlayer: 1 | 2;
   onSquareClick: (row: number, col: number) => void;
   lastOpponentMove: { from: Position; to: Position } | null;
+  battlePosition: { position: Position; winner: 1 | 2 | null } | null;
 }
 
 export const GameBoard = ({
   board,
   onSquareClick,
   lastOpponentMove,
+  battlePosition,
 }: GameBoardProps) => {
   // Calculate arrow direction and rotation
   const getArrowRotation = (from: Position, to: Position): number => {
@@ -93,6 +95,21 @@ export const GameBoard = ({
                               }}
                             >
                               ↑
+                            </div>
+                          )}
+                        {battlePosition &&
+                          battlePosition.position.row === rowIndex &&
+                          battlePosition.position.col === colIndex && (
+                            <div
+                              className={`explosion ${
+                                battlePosition.winner === 1
+                                  ? "explosion-blue"
+                                  : battlePosition.winner === 2
+                                  ? "explosion-red"
+                                  : "explosion-neutral"
+                              }`}
+                            >
+                              💥
                             </div>
                           )}
                       </>

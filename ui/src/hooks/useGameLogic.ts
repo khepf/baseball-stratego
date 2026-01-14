@@ -39,6 +39,10 @@ export const useGameLogic = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ai] = useState(() => new StrategoAI());
+  const [battlePosition, setBattlePosition] = useState<{
+    position: Position;
+    winner: 1 | 2 | null;
+  } | null>(null);
 
   function initializeBoard(): BoardSquare[][] {
     const board: BoardSquare[][] = [];
@@ -259,6 +263,19 @@ export const useGameLogic = () => {
         const result = resolveBattle(movingPiece, targetPiece);
         battleResult = result;
 
+        // Determine who won for explosion color
+        let battleWinner: 1 | 2 | null = null;
+        if (result === "attacker-wins") {
+          battleWinner = movingPiece.player;
+        } else if (result === "defender-wins") {
+          battleWinner = targetPiece.player;
+        }
+        // For tie, leave as null
+
+        // Show explosion at battle location with winner color
+        setBattlePosition({ position: to, winner: battleWinner });
+        setTimeout(() => setBattlePosition(null), 1500);
+
         if (result === "attacker-wins") {
           newBoard[to.row][to.col].piece = { ...movingPiece, isRevealed: true };
           newBoard[from.row][from.col].piece = null;
@@ -363,7 +380,7 @@ export const useGameLogic = () => {
         if (aiMove) {
           movePiece(aiMove.from, aiMove.to);
         }
-      }, 800); // 800ms delay so human can see what's happening
+      }, 1500); // 1.5s delay so human can see what's happening
 
       return () => clearTimeout(timer);
     }
@@ -398,5 +415,6 @@ export const useGameLogic = () => {
     fetchTeamData,
     selectPiece,
     resetGame,
+    battlePosition,
   };
 };
