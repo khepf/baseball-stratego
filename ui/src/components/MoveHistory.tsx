@@ -20,7 +20,13 @@ export const MoveHistory = ({ moves }: MoveHistoryProps) => {
     let moveText = `${player}: ${move.piece.rank} ${fromPos}→${toPos}`;
 
     if (move.capturedPiece) {
-      moveText += ` (captured ${move.capturedPiece.rank})`;
+      if (move.battleResult === "defender-wins") {
+        moveText += ` (captured by ${move.capturedPiece.rank})`;
+      } else if (move.battleResult === "tie") {
+        moveText += ` (tied with ${move.capturedPiece.rank})`;
+      } else {
+        moveText += ` (captured ${move.capturedPiece.rank})`;
+      }
     }
 
     return moveText;

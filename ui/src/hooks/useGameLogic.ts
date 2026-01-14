@@ -250,10 +250,12 @@ export const useGameLogic = () => {
       const targetPiece = newBoard[to.row][to.col].piece;
 
       const capturedPieces = [...prev.capturedPieces];
+      let battleResult: "attacker-wins" | "defender-wins" | "tie" | undefined;
 
       if (targetPiece) {
         // Battle!
         const result = resolveBattle(movingPiece, targetPiece);
+        battleResult = result;
 
         if (result === "attacker-wins") {
           newBoard[to.row][to.col].piece = { ...movingPiece, isRevealed: true };
@@ -294,6 +296,7 @@ export const useGameLogic = () => {
         to,
         piece: movingPiece,
         capturedPiece: targetPiece || undefined,
+        battleResult,
         timestamp: Date.now(),
       };
 

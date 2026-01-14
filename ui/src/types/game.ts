@@ -46,6 +46,7 @@ export interface Move {
   to: Position;
   piece: GamePiece;
   capturedPiece?: GamePiece;
+  battleResult?: "attacker-wins" | "defender-wins" | "tie";
   timestamp: number;
 }
 
