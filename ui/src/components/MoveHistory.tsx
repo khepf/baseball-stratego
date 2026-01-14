@@ -12,7 +12,7 @@ export const MoveHistory = ({ moves }: MoveHistoryProps) => {
     return `${col}${row}`;
   };
 
-  const formatMove = (move: Move, index: number) => {
+  const formatMove = (move: Move) => {
     const player = move.piece.player === 1 ? "P1" : "P2";
     const fromPos = formatPosition(move.from);
     const toPos = formatPosition(move.to);
@@ -42,6 +42,9 @@ export const MoveHistory = ({ moves }: MoveHistoryProps) => {
     return moveText;
   };
 
+  // Show only the last 5 moves
+  const recentMoves = moves.slice(-5);
+
   return (
     <div className="move-history">
       <h3>Move History</h3>
@@ -49,12 +52,15 @@ export const MoveHistory = ({ moves }: MoveHistoryProps) => {
         {moves.length === 0 ? (
           <p className="no-moves">No moves yet</p>
         ) : (
-          moves.map((move, index) => (
-            <div key={index} className={`move-item player${move.piece.player}`}>
-              <span className="move-number">{index + 1}.</span>
-              <span className="move-text">{formatMove(move, index)}</span>
-            </div>
-          ))
+          recentMoves.map((move, index) => {
+            const actualMoveNumber = moves.length - recentMoves.length + index + 1;
+            return (
+              <div key={actualMoveNumber} className={`move-item player${move.piece.player}`}>
+                <span className="move-number">{actualMoveNumber}.</span>
+                <span className="move-text">{formatMove(move)}</span>
+              </div>
+            );
+          })
         )}
       </div>
     </div>
