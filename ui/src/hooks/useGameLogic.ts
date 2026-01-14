@@ -263,6 +263,44 @@ export const useGameLogic = () => {
         const result = resolveBattle(movingPiece, targetPiece);
         battleResult = result;
 
+        // Play sound effects based on battle outcome
+        // Check if defender is a bomb
+        if (targetPiece.rank === "Bomb") {
+          const bombSound = new Audio("/src/assets/sounds/bomb.mp3");
+          bombSound.volume = 0.5;
+          bombSound
+            .play()
+            .catch((err) => console.log("Audio play failed:", err));
+        } else if (result === "attacker-wins" && movingPiece.player === 1) {
+          // P1 wins
+          const winSound = new Audio("/src/assets/sounds/whip-win.mp3");
+          winSound.volume = 0.5;
+          winSound
+            .play()
+            .catch((err) => console.log("Audio play failed:", err));
+        } else if (result === "defender-wins" && targetPiece.player === 2) {
+          // P2 wins (defender is P2)
+          const loseSound = new Audio("/src/assets/sounds/zeus-lose.mp3");
+          loseSound.volume = 0.5;
+          loseSound
+            .play()
+            .catch((err) => console.log("Audio play failed:", err));
+        } else if (result === "attacker-wins" && movingPiece.player === 2) {
+          // P2 wins (attacker is P2)
+          const loseSound = new Audio("/src/assets/sounds/zeus-lose.mp3");
+          loseSound.volume = 0.5;
+          loseSound
+            .play()
+            .catch((err) => console.log("Audio play failed:", err));
+        } else if (result === "defender-wins" && targetPiece.player === 1) {
+          // P1 wins (defender is P1)
+          const winSound = new Audio("/src/assets/sounds/whip-win.mp3");
+          winSound.volume = 0.5;
+          winSound
+            .play()
+            .catch((err) => console.log("Audio play failed:", err));
+        }
+
         // Determine who won for explosion color
         let battleWinner: 1 | 2 | null = null;
         if (result === "attacker-wins") {

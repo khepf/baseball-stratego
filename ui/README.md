@@ -73,5 +73,4 @@ export default defineConfig([
 ```
 - push to prod
 - GA
-- add some animations
 - board backgrounds
