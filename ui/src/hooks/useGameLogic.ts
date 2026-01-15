@@ -43,12 +43,13 @@ export const useGameLogic = () => {
     capturedPieces: [],
     moveHistory: [],
     lastOpponentMove: null,
+    aiDifficulty: "medium",
   });
 
   const [teamData, setTeamData] = useState<TeamData[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [ai] = useState(() => new StrategoAI());
+  const [ai, setAi] = useState(() => new StrategoAI("medium"));
   const [battlePosition, setBattlePosition] = useState<{
     position: Position;
     winner: 1 | 2 | null;
@@ -486,7 +487,7 @@ export const useGameLogic = () => {
   ]);
 
   const resetGame = useCallback(() => {
-    setGameState({
+    setGameState((prev) => ({
       board: initializeBoard(),
       currentPlayer: 1,
       selectedPiece: null,
@@ -495,9 +496,21 @@ export const useGameLogic = () => {
       capturedPieces: [],
       moveHistory: [],
       lastOpponentMove: null,
-    });
+      aiDifficulty: prev.aiDifficulty, // Keep the current difficulty
+    }));
     setTeamData(null);
   }, []);
+
+  const setDifficulty = useCallback(
+    (difficulty: "easy" | "medium" | "hard") => {
+      setGameState((prev) => ({
+        ...prev,
+        aiDifficulty: difficulty,
+      }));
+      setAi(new StrategoAI(difficulty));
+    },
+    []
+  );
 
   return {
     gameState,
@@ -507,6 +520,7 @@ export const useGameLogic = () => {
     fetchTeamData,
     selectPiece,
     resetGame,
+    setDifficulty,
     battlePosition,
   };
 };

@@ -40,6 +40,7 @@ export interface GameState {
   capturedPieces: GamePiece[];
   moveHistory: Move[];
   lastOpponentMove: { from: Position; to: Position } | null;
+  aiDifficulty: "easy" | "medium" | "hard";
 }
 
 export interface Move {

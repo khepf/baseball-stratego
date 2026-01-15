@@ -18,3 +18,45 @@
   opacity: 0.9;
   font-style: italic;
 }
+
+.difficulty-selector {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.difficulty-selector label {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.difficulty-selector select {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  border: 2px solid #3182ce;
+  background-color: white;
+  color: #2c5282;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.difficulty-selector select:hover:not(:disabled) {
+  background-color: #f0f9ff;
+  border-color: #2b6cb0;
+  transform: scale(1.02);
+}
+
+.difficulty-selector select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.difficulty-selector select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.3);
+}

@@ -24,6 +24,7 @@ function App() {
     fetchTeamData,
     selectPiece,
     resetGame,
+    setDifficulty,
     battlePosition,
   } = useGameLogic();
 
@@ -40,7 +41,11 @@ function App() {
 
   return (
     <div className="app">
-      <Header />
+      <Header
+        difficulty={gameState.aiDifficulty}
+        onDifficultyChange={setDifficulty}
+        gamePhase={gameState.gamePhase}
+      />
 
       <main className="app-main">
         {gameState.gamePhase === "setup" && (
