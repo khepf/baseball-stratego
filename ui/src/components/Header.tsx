@@ -1,16 +1,14 @@
+import { Link } from "react-router-dom";
+import type { User } from "../types/auth";
 import "./Header.css";
 
 interface HeaderProps {
-  difficulty: "easy" | "medium" | "hard";
-  onDifficultyChange: (difficulty: "easy" | "medium" | "hard") => void;
   gamePhase: "setup" | "playing" | "finished";
+  currentUser: User | null;
+  onLogout: () => void;
 }
 
-export const Header = ({
-  difficulty,
-  onDifficultyChange,
-  gamePhase,
-}: HeaderProps) => {
+export const Header = ({ gamePhase, currentUser, onLogout }: HeaderProps) => {
   return (
     <header className="app-header">
       <div className="header-content">
@@ -24,20 +22,29 @@ export const Header = ({
           <h1>⚾ Baseball Strategery ⚾</h1>
         </div>
 
-        <div className="difficulty-selector">
-          <label htmlFor="difficulty">AI Difficulty: </label>
-          <select
-            id="difficulty"
-            value={difficulty}
-            onChange={(e) =>
-              onDifficultyChange(e.target.value as "easy" | "medium" | "hard")
-            }
-            disabled={gamePhase === "playing"}
-          >
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
+        <div className="user-info-section">
+          {currentUser ? (
+            <div className="user-logged-in">
+              <span className="user-greeting">
+                Welcome, <strong>{currentUser.username}</strong>!
+              </span>
+              <button onClick={onLogout} className="logout-button">
+                Logout
+              </button>
+            </div>
+          ) : (
+            <div className="user-guest">
+              <span className="guest-message">Playing as guest</span>
+              <div className="auth-buttons">
+                <Link to="/login" className="auth-nav-button">
+                  Login
+                </Link>
+                <Link to="/register" className="auth-nav-button primary">
+                  Sign Up
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

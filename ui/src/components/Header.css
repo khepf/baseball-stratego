@@ -33,7 +33,7 @@
     text-align: right;
   }
 
-  .difficulty-selector {
+  .user-info-section {
     flex: 0 0 auto;
     margin-top: 0 !important;
     text-align: left;
@@ -53,7 +53,8 @@
   font-style: italic;
 }
 
-.difficulty-selector {
+/* User Info Section */
+.user-info-section {
   margin-top: 1rem;
   padding: 0.75rem;
   background-color: rgba(255, 255, 255, 0.1);
@@ -61,36 +62,80 @@
   display: inline-block;
 }
 
-.difficulty-selector label {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-right: 0.5rem;
+.user-logged-in {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
-.difficulty-selector select {
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
-  border-radius: 4px;
-  border: 2px solid #3182ce;
-  background-color: white;
-  color: #2c5282;
-  font-weight: 600;
+.user-greeting {
+  color: #f7fafc;
+  font-size: 14px;
+}
+
+.user-greeting strong {
+  color: #90cdf4;
+}
+
+.logout-button {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
-.difficulty-selector select:hover:not(:disabled) {
-  background-color: #f0f9ff;
-  border-color: #2b6cb0;
-  transform: scale(1.02);
+.logout-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
-.difficulty-selector select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.user-guest {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
-.difficulty-selector select:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.3);
+.guest-message {
+  color: #e2e8f0;
+  font-size: 13px;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.auth-nav-button {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s;
+  display: inline-block;
+}
+
+.auth-nav-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.auth-nav-button.primary {
+  background: rgba(147, 197, 253, 0.3);
+  border-color: rgba(147, 197, 253, 0.5);
+}
+
+.auth-nav-button.primary:hover {
+  background: rgba(147, 197, 253, 0.4);
+  border-color: rgba(147, 197, 253, 0.7);
+  transform: translateY(-1px);
 }

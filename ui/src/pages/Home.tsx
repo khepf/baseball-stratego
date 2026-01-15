@@ -54,36 +54,10 @@ export function Home() {
   return (
     <div className="app">
       <Header
-        difficulty={gameState.aiDifficulty}
-        onDifficultyChange={setDifficulty}
         gamePhase={gameState.gamePhase}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
-
-      {/* User Info Bar */}
-      <div className="user-info-bar">
-        {currentUser ? (
-          <div className="user-logged-in">
-            <span className="user-greeting">
-              Welcome, <strong>{currentUser.username}</strong>!
-            </span>
-            <button onClick={handleLogout} className="logout-button">
-              Logout
-            </button>
-          </div>
-        ) : (
-          <div className="user-guest">
-            <span className="guest-message">Playing as guest</span>
-            <div className="auth-buttons">
-              <Link to="/login" className="auth-nav-button">
-                Login
-              </Link>
-              <Link to="/register" className="auth-nav-button primary">
-                Sign Up
-              </Link>
-            </div>
-          </div>
-        )}
-      </div>
 
       <main className="app-main">
         {gameState.gamePhase === "setup" && (
@@ -95,6 +69,20 @@ export function Home() {
               ( Be patient. It may take a minute to retrieve and set up the
               teams. )
             </p>
+            <div className="difficulty-selector">
+              <label htmlFor="difficulty">AI Difficulty: </label>
+              <select
+                id="difficulty"
+                value={gameState.aiDifficulty}
+                onChange={(e) =>
+                  setDifficulty(e.target.value as "easy" | "medium" | "hard")
+                }
+              >
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
             <button
               onClick={handleStartNewGame}
               disabled={isLoading}

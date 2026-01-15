@@ -1,88 +1,4 @@
-.user-info-bar {
-  background: #f8f9fa;
-  border-bottom: 2px solid #e9ecef;
-  padding: 12px 20px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.user-logged-in {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.user-greeting {
-  color: #495057;
-  font-size: 14px;
-}
-
-.user-greeting strong {
-  color: #667eea;
-}
-
-.logout-button {
-  padding: 8px 16px;
-  background: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.logout-button:hover {
-  background: #5a6268;
-}
-
-.user-guest {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.guest-message {
-  color: #6c757d;
-  font-size: 14px;
-}
-
-.auth-buttons {
-  display: flex;
-  gap: 10px;
-}
-
-.auth-nav-button {
-  padding: 8px 16px;
-  background: white;
-  color: #667eea;
-  border: 2px solid #667eea;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  text-decoration: none;
-  transition: all 0.3s;
-  display: inline-block;
-}
-
-.auth-nav-button:hover {
-  background: #f8f9fa;
-}
-
-.auth-nav-button.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-}
-
-.auth-nav-button.primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
-}
-
+/* Guest Notice */
 .guest-notice {
   background: #e7f3ff;
   border: 1px solid #b3d9ff;
@@ -109,4 +25,152 @@
 
 .inline-link:hover {
   text-decoration: underline;
+}
+
+/* Difficulty Selector */
+.setup-screen .difficulty-selector {
+  margin-bottom: 0;
+  margin-right: 1.5rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  height: 60px;
+  width: 320px;
+  box-sizing: border-box;
+}
+
+.setup-screen .difficulty-selector label {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-right: 0;
+  color: #f7fafc;
+}
+
+.setup-screen .difficulty-selector select {
+  padding: 0.5rem 1rem;
+  font-size: 1.2rem;
+  border-radius: 4px;
+  border: 2px solid #3182ce;
+  background-color: white;
+  color: #2c5282;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+/* .setup-screen .difficulty-selector select:hover {
+  background-color: #f0f9ff;
+  border-color: #2b6cb0;
+  transform: scale(1.02);
+}
+
+.setup-screen .difficulty-selector select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.3);
+} */
+
+/* Start New Game Button */
+.start-button {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #f7fafc;
+  font-size: 1.2rem;
+  font-weight: 600;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  height: 60px;
+  width: 320px;
+  box-sizing: border-box;
+}
+
+.start-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.5);
+}
+
+.start-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.start-button.loading {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Start New Game Button */
+.start-button {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  height: 60px;
+  min-width: 250px;
+  box-sizing: border-box;
+}
+
+.start-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.5);
+}
+
+.start-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.start-button.loading {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
