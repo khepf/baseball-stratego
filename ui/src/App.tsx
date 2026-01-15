@@ -157,7 +157,7 @@ function App() {
               Player {gameState.winner} Wins!
             </h1>
             <button onClick={resetGame} className="play-again-button">
-              Play Again
+              Main Menu
             </button>
           </div>
         )}
