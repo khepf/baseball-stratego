@@ -85,13 +85,13 @@ function App() {
                   Click a piece to select it, then click a highlighted square to
                   move
                 </li>
-                <li>Higher-ranked teams defeat lower-ranked teams in battle</li>
+                <li>Higher-ranked team pieces defeat lower-ranked team pieces in battle</li>
                 <li>
-                  Special rules: Spy (lowest) can capture Marshal (highest) when
+                  Special rules: "S" piece (lowest) can capture "1" piece (highest) when
                   attacking
                 </li>
                 <li>
-                  Miners can defuse Bombs, Scouts can move multiple squares
+                  "8" pieces (miners) can defuse Bombs, "9" pieces (scouts)  can move multiple squares
                 </li>
                 <li>Capture the opponent's Flag to win!</li>
               </ul>
