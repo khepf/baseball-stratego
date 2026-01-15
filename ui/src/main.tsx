@@ -6,6 +6,7 @@ import App from "./App.tsx";
 import { Home } from "./pages/Home";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
+import { Leaderboards } from "./pages/Leaderboards";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -17,6 +18,7 @@ createRoot(document.getElementById("root")!).render(
             <Route index element={<Home />} />
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
+            <Route path="leaderboards" element={<Leaderboards />} />
           </Route>
         </Routes>
       </AuthProvider>

@@ -20,6 +20,9 @@ export const Header = ({ currentUser, onLogout }: HeaderProps) => {
         </div>
         <div className="title-section">
           <h1>⚾ Baseball Strategery ⚾</h1>
+          <Link to="/leaderboards" className="leaderboards-link">
+            🏆 Leaderboards
+          </Link>
         </div>
 
         <div className="user-info-section">

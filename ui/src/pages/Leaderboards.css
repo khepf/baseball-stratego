@@ -1,0 +1,264 @@
+.leaderboards-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+}
+
+.leaderboards-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.leaderboards-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  color: #1a202c;
+}
+
+.leaderboards-header p {
+  font-size: 1.1rem;
+  color: #718096;
+  margin-bottom: 1rem;
+}
+
+.back-link {
+  display: inline-block;
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.back-link:hover {
+  background-color: #edf2f7;
+}
+
+.difficulty-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.difficulty-tabs button {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: 2px solid #e2e8f0;
+  background: white;
+  color: #4a5568;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.difficulty-tabs button:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.difficulty-tabs button.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: #667eea;
+  box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
+}
+
+.loading-message,
+.empty-message {
+  text-align: center;
+  padding: 3rem;
+  color: #718096;
+}
+
+.loading-message .spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-message {
+  background: #fff5f5;
+  border: 1px solid #fc8181;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 2rem 0;
+  color: #c53030;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 1.5rem;
+  margin-right: 0.5rem;
+}
+
+.leaderboard-table-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leaderboard-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.leaderboard-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.leaderboard-table tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+  transition: background-color 0.2s;
+}
+
+.leaderboard-table tbody tr:hover {
+  background-color: #f7fafc;
+}
+
+.leaderboard-table tbody tr.current-user {
+  background-color: #ebf8ff;
+  border-left: 4px solid #3182ce;
+}
+
+.leaderboard-table tbody tr.current-user:hover {
+  background-color: #bee3f8;
+}
+
+.leaderboard-table td {
+  padding: 1rem;
+}
+
+.rank-cell {
+  font-weight: 700;
+  font-size: 1.1rem;
+  width: 100px;
+}
+
+.rank-cell .rank-number {
+  margin-right: 0.5rem;
+}
+
+.leaderboard-table tbody tr.rank-1 .rank-cell {
+  color: #d4af37; /* Gold */
+}
+
+.leaderboard-table tbody tr.rank-2 .rank-cell {
+  color: #c0c0c0; /* Silver */
+}
+
+.leaderboard-table tbody tr.rank-3 .rank-cell {
+  color: #cd7f32; /* Bronze */
+}
+
+.username-cell {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.you-badge {
+  display: inline-block;
+  background: #3182ce;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  font-weight: 600;
+}
+
+.moves-cell {
+  color: #667eea;
+  font-size: 1.05rem;
+}
+
+.moves-cell strong {
+  font-weight: 700;
+}
+
+.team-cell {
+  color: #4a5568;
+  font-size: 0.9rem;
+}
+
+.date-cell {
+  color: #a0aec0;
+  font-size: 0.9rem;
+}
+
+.login-prompt {
+  background: #edf2f7;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  color: #4a5568;
+}
+
+.login-prompt a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.login-prompt a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .leaderboards-page {
+    padding: 1rem;
+  }
+
+  .leaderboards-header h1 {
+    font-size: 2rem;
+  }
+
+  .difficulty-tabs {
+    flex-direction: column;
+  }
+
+  .difficulty-tabs button {
+    width: 100%;
+  }
+
+  .leaderboard-table {
+    font-size: 0.9rem;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .team-cell,
+  .date-cell {
+    display: none;
+  }
+}

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type {
   GameState,
   GamePiece,
@@ -8,6 +8,9 @@ import type {
 } from "../types/game.ts";
 import { RANK_VALUES } from "../types/game.ts";
 import { StrategoAI } from "../utils/ai";
+import { saveGameResult } from "../services/leaderboardService";
+import { serverTimestamp, type FieldValue } from "firebase/firestore";
+import type { User as FirebaseUser } from "firebase/auth";
 
 import bombSoundFile from "../assets/sounds/bomb.mp3";
 import winSoundFile from "../assets/sounds/whip-win.mp3";
@@ -33,7 +36,7 @@ const LAKE_POSITIONS = [
   { row: 5, col: 7 },
 ];
 
-export const useGameLogic = () => {
+export const useGameLogic = (currentUser?: FirebaseUser | null) => {
   const [gameState, setGameState] = useState<GameState>({
     board: initializeBoard(),
     currentPlayer: 1,
@@ -54,6 +57,9 @@ export const useGameLogic = () => {
     position: Position;
     winner: 1 | 2 | null;
   } | null>(null);
+
+  // Track player 1 moves for leaderboard
+  const player1Moves = useRef<number>(0);
 
   function initializeBoard(): BoardSquare[][] {
     const board: BoardSquare[][] = [];
@@ -97,6 +103,7 @@ export const useGameLogic = () => {
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const setupPieces = (data: TeamData[]) => {
@@ -212,6 +219,7 @@ export const useGameLogic = () => {
         }));
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [gameState]
   );
 
@@ -374,6 +382,20 @@ export const useGameLogic = () => {
             gameWinSound
               .play()
               .catch((err) => console.log("Audio play failed:", err));
+
+            // Save game result to leaderboard if user is logged in
+            if (currentUser) {
+              saveGameResult({
+                userId: currentUser.uid,
+                username: currentUser.displayName || "Anonymous",
+                moves: player1Moves.current,
+                difficulty: prev.aiDifficulty,
+                timestamp: serverTimestamp() as FieldValue,
+                won: true,
+              }).catch((err) =>
+                console.error("Failed to save game result:", err)
+              );
+            }
           } else {
             const gameLoseSound = new Audio(gameLoseFile);
             gameLoseSound.volume = 0.6;
@@ -412,6 +434,11 @@ export const useGameLogic = () => {
         timestamp: Date.now(),
       };
 
+      // Increment player 1 move counter
+      if (movingPiece.player === 1) {
+        player1Moves.current++;
+      }
+
       const nextPlayer = prev.currentPlayer === 1 ? 2 : (1 as 1 | 2);
 
       return {
@@ -425,6 +452,7 @@ export const useGameLogic = () => {
         lastOpponentMove: movingPiece.player === 2 ? { from, to } : null,
       };
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const resolveBattle = (
@@ -499,6 +527,7 @@ export const useGameLogic = () => {
       aiDifficulty: prev.aiDifficulty, // Keep the current difficulty
     }));
     setTeamData(null);
+    player1Moves.current = 0; // Reset move counter
   }, []);
 
   const setDifficulty = useCallback(

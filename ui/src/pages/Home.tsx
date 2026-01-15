@@ -19,6 +19,8 @@ declare global {
 }
 
 export function Home() {
+  const { currentUser, firebaseUser, logout } = useAuth();
+
   const {
     gameState,
     isLoading,
@@ -28,9 +30,7 @@ export function Home() {
     resetGame,
     setDifficulty,
     battlePosition,
-  } = useGameLogic();
-
-  const { currentUser, logout } = useAuth();
+  } = useGameLogic(firebaseUser);
 
   const handleStartNewGame = () => {
     // Track the event in Google Analytics
