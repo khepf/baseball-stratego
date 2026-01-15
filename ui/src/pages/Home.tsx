@@ -1,0 +1,231 @@
+import { useGameLogic } from "../hooks/useGameLogic";
+import { GameBoard } from "../components/GameBoard";
+import { CapturedPieces } from "../components/CapturedPieces";
+import { Header } from "../components/Header";
+import { MoveHistory } from "../components/MoveHistory";
+import { useAuth } from "../hooks/useAuth";
+import { Link } from "react-router-dom";
+import "./Home.css";
+
+// Declare gtag for TypeScript
+declare global {
+  interface Window {
+    gtag?: (
+      command: string,
+      targetId: string,
+      config?: Record<string, unknown>
+    ) => void;
+  }
+}
+
+export function Home() {
+  const {
+    gameState,
+    isLoading,
+    error,
+    fetchTeamData,
+    selectPiece,
+    resetGame,
+    setDifficulty,
+    battlePosition,
+  } = useGameLogic();
+
+  const { currentUser, logout } = useAuth();
+
+  const handleStartNewGame = () => {
+    // Track the event in Google Analytics
+    if (window.gtag) {
+      window.gtag("event", "start_new_game", {
+        event_category: "game",
+        event_label: "Start New Game Button",
+      });
+    }
+    fetchTeamData();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Failed to log out:", error);
+    }
+  };
+
+  return (
+    <div className="app">
+      <Header
+        difficulty={gameState.aiDifficulty}
+        onDifficultyChange={setDifficulty}
+        gamePhase={gameState.gamePhase}
+      />
+
+      {/* User Info Bar */}
+      <div className="user-info-bar">
+        {currentUser ? (
+          <div className="user-logged-in">
+            <span className="user-greeting">
+              Welcome, <strong>{currentUser.username}</strong>!
+            </span>
+            <button onClick={handleLogout} className="logout-button">
+              Logout
+            </button>
+          </div>
+        ) : (
+          <div className="user-guest">
+            <span className="guest-message">Playing as guest</span>
+            <div className="auth-buttons">
+              <Link to="/login" className="auth-nav-button">
+                Login
+              </Link>
+              <Link to="/register" className="auth-nav-button primary">
+                Sign Up
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <main className="app-main">
+        {gameState.gamePhase === "setup" && (
+          <div className="setup-screen">
+            <h2>
+              Click below to fetch random baseball teams and start the game.
+            </h2>
+            <p>
+              ( Be patient. It may take a minute to retrieve and set up the
+              teams. )
+            </p>
+            <button
+              onClick={handleStartNewGame}
+              disabled={isLoading}
+              className={`start-button ${isLoading ? "loading" : ""}`}
+            >
+              {isLoading && <span className="spinner"></span>}
+              {isLoading ? "Loading Teams..." : "Start New Game"}
+            </button>
+            {error && (
+              <div className="error-message">
+                <span className="error-icon">⚠️</span>
+                <div>
+                  <strong>Error:</strong> {error}
+                  <p className="error-hint">
+                    Please check your API connection and try again.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {!currentUser && (
+              <div className="guest-notice">
+                <p>
+                  ℹ️ You're playing as a guest. Your scores won't be saved to
+                  the leaderboards.
+                </p>
+                <p>
+                  <Link to="/register" className="inline-link">
+                    Create an account
+                  </Link>{" "}
+                  or{" "}
+                  <Link to="/login" className="inline-link">
+                    log in
+                  </Link>{" "}
+                  to compete on the leaderboards!
+                </p>
+              </div>
+            )}
+
+            <div className="rules">
+              <h3>How to Play:</h3>
+              <ul>
+                <li>
+                  You control 40 historical baseball team pieces ranked by win
+                  percentage
+                </li>
+                <li>
+                  Click a piece to select it, then click a highlighted square to
+                  move
+                </li>
+                <li>
+                  Higher-ranked team pieces defeat lower-ranked team pieces in
+                  battle
+                </li>
+                <li>
+                  Special rules: "S" piece (lowest) can capture "1" piece
+                  (highest) when attacking
+                </li>
+                <li>
+                  "8" pieces (miners) can defuse Bombs, "9" pieces (scouts) can
+                  move multiple squares
+                </li>
+                <li>Capture the opponent's Flag to win!</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {gameState.gamePhase === "playing" && (
+          <div className="game-screen">
+            <div className="game-info">
+              <div className="current-player">
+                <h2>Current Turn: Player {gameState.currentPlayer}</h2>
+                <div
+                  className={`player-indicator player${gameState.currentPlayer}`}
+                ></div>
+              </div>
+
+              <div className="selected-piece-info">
+                {gameState.selectedPiece ? (
+                  <>
+                    <h3>Selected Piece:</h3>
+                    <p>
+                      <strong>{gameState.selectedPiece.piece.rank}</strong>
+                    </p>
+                    <p>{gameState.selectedPiece.piece.teamData.teamName}</p>
+                    <p>
+                      {gameState.selectedPiece.piece.teamData.year} (
+                      {gameState.selectedPiece.piece.teamData.wins}-
+                      {gameState.selectedPiece.piece.teamData.losses})
+                    </p>
+                  </>
+                ) : (
+                  <div className="placeholder">&nbsp;</div>
+                )}
+              </div>
+            </div>
+
+            <MoveHistory moves={gameState.moveHistory} />
+
+            <GameBoard
+              board={gameState.board}
+              currentPlayer={gameState.currentPlayer}
+              onSquareClick={selectPiece}
+              lastOpponentMove={gameState.lastOpponentMove}
+              battlePosition={battlePosition}
+            />
+
+            <div className="sidebar">
+              <button onClick={resetGame} className="reset-button">
+                Main Menu
+              </button>
+
+              <CapturedPieces pieces={gameState.capturedPieces} player={1} />
+              <CapturedPieces pieces={gameState.capturedPieces} player={2} />
+            </div>
+          </div>
+        )}
+
+        {gameState.gamePhase === "finished" && (
+          <div className="game-over-screen">
+            <h2>🎉 Game Over! 🎉</h2>
+            <h1 className={`winner player${gameState.winner}`}>
+              Player {gameState.winner} Wins!
+            </h1>
+            <button onClick={resetGame} className="play-again-button">
+              Main Menu
+            </button>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}

@@ -1,0 +1,112 @@
+.user-info-bar {
+  background: #f8f9fa;
+  border-bottom: 2px solid #e9ecef;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.user-logged-in {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.user-greeting {
+  color: #495057;
+  font-size: 14px;
+}
+
+.user-greeting strong {
+  color: #667eea;
+}
+
+.logout-button {
+  padding: 8px 16px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.logout-button:hover {
+  background: #5a6268;
+}
+
+.user-guest {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.guest-message {
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.auth-nav-button {
+  padding: 8px 16px;
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s;
+  display: inline-block;
+}
+
+.auth-nav-button:hover {
+  background: #f8f9fa;
+}
+
+.auth-nav-button.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.auth-nav-button.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+}
+
+.guest-notice {
+  background: #e7f3ff;
+  border: 1px solid #b3d9ff;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 20px 0;
+  color: #004085;
+  font-size: 14px;
+}
+
+.guest-notice p {
+  margin: 8px 0;
+}
+
+.guest-notice p:first-child {
+  font-weight: 600;
+}
+
+.inline-link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.inline-link:hover {
+  text-decoration: underline;
+}
