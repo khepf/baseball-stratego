@@ -13,25 +13,32 @@ export const Header = ({
 }: HeaderProps) => {
   return (
     <header className="app-header">
-      <h1>⚾ Baseball Strategery ⚾</h1>
-      <p className="subtitle">
-        A strategic battle of baseball's greatest teams.
-      </p>
-      <p className="subtitle">...and everyone else.</p>
-      <div className="difficulty-selector">
-        <label htmlFor="difficulty">AI Difficulty: </label>
-        <select
-          id="difficulty"
-          value={difficulty}
-          onChange={(e) =>
-            onDifficultyChange(e.target.value as "easy" | "medium" | "hard")
-          }
-          disabled={gamePhase === "playing"}
-        >
-          <option value="easy">Easy</option>
-          <option value="medium">Medium</option>
-          <option value="hard">Hard</option>
-        </select>
+      <div className="header-content">
+        <div className="subtitle-section">
+          <p className="subtitle">
+            A strategic battle of baseball's greatest teams.
+          </p>
+          <p className="subtitle">...and everyone else.</p>
+        </div>
+        <div className="title-section">
+          <h1>⚾ Baseball Strategery ⚾</h1>
+        </div>
+
+        <div className="difficulty-selector">
+          <label htmlFor="difficulty">AI Difficulty: </label>
+          <select
+            id="difficulty"
+            value={difficulty}
+            onChange={(e) =>
+              onDifficultyChange(e.target.value as "easy" | "medium" | "hard")
+            }
+            disabled={gamePhase === "playing"}
+          >
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
       </div>
     </header>
   );

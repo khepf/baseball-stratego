@@ -50,9 +50,9 @@ function App() {
       <main className="app-main">
         {gameState.gamePhase === "setup" && (
           <div className="setup-screen">
-            <h2>Welcome to Baseball Strategery!</h2>
+            <h2>Click below to fetch random baseball teams and start the game.</h2>
             <p>
-              Click below to fetch random baseball teams and start the game.
+              ( Be patient. It may take a minute to retrieve and set up the teams )
             </p>
             <button
               onClick={handleStartNewGame}
