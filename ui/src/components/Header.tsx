@@ -8,7 +8,7 @@ interface HeaderProps {
   onLogout: () => void;
 }
 
-export const Header = ({ gamePhase, currentUser, onLogout }: HeaderProps) => {
+export const Header = ({ currentUser, onLogout }: HeaderProps) => {
   return (
     <header className="app-header">
       <div className="header-content">

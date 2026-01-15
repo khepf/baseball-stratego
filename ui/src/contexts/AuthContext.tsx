@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import {
   createUserWithEmailAndPassword,
@@ -11,10 +11,7 @@ import type { User as FirebaseUser } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, googleProvider, db } from "../config/firebase";
 import type { User, AuthContextType } from "../types/auth";
-
-export const AuthContext = createContext<AuthContextType | undefined>(
-  undefined
-);
+import { AuthContext } from "./AuthContext.context";
 
 interface AuthProviderProps {
   children: ReactNode;
