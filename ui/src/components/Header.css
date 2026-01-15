@@ -103,6 +103,24 @@
   color: #90cdf4;
 }
 
+.profile-button {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.3s;
+  display: inline-block;
+}
+
+.profile-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
 .logout-button {
   padding: 6px 14px;
   background: rgba(255, 255, 255, 0.2);

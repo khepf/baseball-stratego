@@ -31,6 +31,9 @@ export const Header = ({ currentUser, onLogout }: HeaderProps) => {
               <span className="user-greeting">
                 Welcome, <strong>{currentUser.username}</strong>!
               </span>
+              <Link to="/profile" className="profile-button">
+                Profile
+              </Link>
               <button onClick={onLogout} className="logout-button">
                 Logout
               </button>
