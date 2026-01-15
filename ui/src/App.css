@@ -257,7 +257,6 @@
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  min-height: 250px; /* Reserve space to prevent layout shift when piece is selected */
 }
 
 .current-player {
@@ -292,16 +291,23 @@
   padding: 1rem;
   background: #1a202c;
   border-radius: 6px;
-  min-height: 120px; /* Reserve space to prevent layout shift */
+  height: 140px; /* Fixed height to prevent layout shift */
+  display: flex;
+  flex-direction: column;
 }
 
 .selected-piece-info h3 {
   margin-top: 0;
   color: #fbbf24;
+  margin-bottom: 0.5rem;
 }
 
 .selected-piece-info p {
   margin: 0.3rem 0;
+}
+
+.selected-piece-info .placeholder {
+  height: 100%;
 }
 
 .sidebar {

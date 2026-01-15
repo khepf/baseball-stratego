@@ -109,20 +109,24 @@ function App() {
                 ></div>
               </div>
 
-              {gameState.selectedPiece && (
-                <div className="selected-piece-info">
-                  <h3>Selected Piece:</h3>
-                  <p>
-                    <strong>{gameState.selectedPiece.piece.rank}</strong>
-                  </p>
-                  <p>{gameState.selectedPiece.piece.teamData.teamName}</p>
-                  <p>
-                    {gameState.selectedPiece.piece.teamData.year} (
-                    {gameState.selectedPiece.piece.teamData.wins}-
-                    {gameState.selectedPiece.piece.teamData.losses})
-                  </p>
-                </div>
-              )}
+              <div className="selected-piece-info">
+                {gameState.selectedPiece ? (
+                  <>
+                    <h3>Selected Piece:</h3>
+                    <p>
+                      <strong>{gameState.selectedPiece.piece.rank}</strong>
+                    </p>
+                    <p>{gameState.selectedPiece.piece.teamData.teamName}</p>
+                    <p>
+                      {gameState.selectedPiece.piece.teamData.year} (
+                      {gameState.selectedPiece.piece.teamData.wins}-
+                      {gameState.selectedPiece.piece.teamData.losses})
+                    </p>
+                  </>
+                ) : (
+                  <div className="placeholder">&nbsp;</div>
+                )}
+              </div>
             </div>
 
             <MoveHistory moves={gameState.moveHistory} />

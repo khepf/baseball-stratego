@@ -4,6 +4,7 @@
   border-radius: 8px;
   background: #f7fafc;
   border: 2px solid #cbd5e0;
+  min-height: 150px;
 }
 
 .captured-pieces.player1 {
