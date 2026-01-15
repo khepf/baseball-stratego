@@ -20,7 +20,7 @@
   max-width: 800px;
   margin: 0 auto;
   background: #2d3748;
-  padding: 3rem;
+  padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
@@ -44,6 +44,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
+  margin-top: .5rem;
 }
 
 .start-button:hover:not(:disabled) {
@@ -119,7 +120,7 @@
 }
 
 .rules {
-  margin-top: 2rem;
+  margin-top: 1rem;
   text-align: left;
   background: #1a202c;
   padding: 1.5rem;
