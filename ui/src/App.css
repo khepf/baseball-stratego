@@ -257,6 +257,7 @@
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  min-height: 250px; /* Reserve space to prevent layout shift when piece is selected */
 }
 
 .current-player {
@@ -291,6 +292,7 @@
   padding: 1rem;
   background: #1a202c;
   border-radius: 6px;
+  min-height: 120px; /* Reserve space to prevent layout shift */
 }
 
 .selected-piece-info h3 {
