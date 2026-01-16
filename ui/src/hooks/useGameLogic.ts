@@ -9,6 +9,7 @@ import type {
 import { RANK_VALUES } from "../types/game.ts";
 import { StrategoAI } from "../utils/ai";
 import { saveGameResult } from "../services/leaderboardService";
+import { fetchRandomTeamsFromFirebase } from "../services/teamService";
 import { serverTimestamp, type FieldValue } from "firebase/firestore";
 import type { User as FirebaseUser } from "firebase/auth";
 
@@ -84,12 +85,7 @@ export const useGameLogic = (currentUser?: FirebaseUser | null) => {
     setIsLoading(true);
     setError(null);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL;
-      const response = await fetch(`${apiUrl}/api/teams/random`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch team data");
-      }
-      const data: TeamData[] = await response.json();
+      const data = await fetchRandomTeamsFromFirebase(66);
       setTeamData(data);
       setupPieces(data);
 
