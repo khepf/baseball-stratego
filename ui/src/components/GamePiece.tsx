@@ -46,7 +46,6 @@ export const GamePiece = ({
             {piece.teamData.teamName && (
               <>
                 <div className="piece-year">{piece.teamData.year}</div>
-                <div className="piece-city">{piece.teamData.city}</div>
                 <div className="piece-team">{piece.teamData.teamName}</div>
                 <div className="piece-record">
                   {piece.teamData.wins}-{piece.teamData.losses}

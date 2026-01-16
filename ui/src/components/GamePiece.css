@@ -66,12 +66,17 @@
   margin-bottom: 2px;
 }
 
-.piece-team,
-.piece-city {
+.piece-team {
   font-size: 0.54rem;
+  line-height: 1.1;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  max-height: 3.3em;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 .piece-year {
