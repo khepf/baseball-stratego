@@ -3,15 +3,24 @@ import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { Link } from "react-router-dom";
-import type { LeaderboardEntry } from "../types/leaderboard";
+import type {
+  LeaderboardEntry,
+  WinsLeaderboardEntry,
+} from "../types/leaderboard";
 import "./Leaderboards.css";
 
 export function Leaderboards() {
   const { currentUser } = useAuth();
+  const [leaderboardType, setLeaderboardType] = useState<"fastest" | "wins">(
+    "fastest"
+  );
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(
     "medium"
   );
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [winsLeaderboard, setWinsLeaderboard] = useState<
+    WinsLeaderboardEntry[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -20,29 +29,43 @@ export function Leaderboards() {
       setLoading(true);
       setError("");
 
-      const leaderboardRef = collection(
-        db,
-        "leaderboards",
-        "fastestCapture",
-        difficulty
-      );
-      const q = query(leaderboardRef, orderBy("moves", "asc"), limit(10));
+      if (leaderboardType === "fastest") {
+        const leaderboardRef = collection(
+          db,
+          "leaderboards",
+          "fastestCapture",
+          difficulty
+        );
+        const q = query(leaderboardRef, orderBy("moves", "asc"), limit(10));
 
-      const querySnapshot = await getDocs(q);
-      const entries: LeaderboardEntry[] = [];
+        const querySnapshot = await getDocs(q);
+        const entries: LeaderboardEntry[] = [];
 
-      querySnapshot.forEach((doc) => {
-        entries.push(doc.data() as LeaderboardEntry);
-      });
+        querySnapshot.forEach((doc) => {
+          entries.push(doc.data() as LeaderboardEntry);
+        });
 
-      setLeaderboard(entries);
+        setLeaderboard(entries);
+      } else {
+        const winsRef = collection(db, "leaderboards", "mostWins", difficulty);
+        const q = query(winsRef, orderBy("wins", "desc"), limit(10));
+
+        const querySnapshot = await getDocs(q);
+        const entries: WinsLeaderboardEntry[] = [];
+
+        querySnapshot.forEach((doc) => {
+          entries.push(doc.data() as WinsLeaderboardEntry);
+        });
+
+        setWinsLeaderboard(entries);
+      }
     } catch (err) {
       console.error("Error fetching leaderboard:", err);
       setError("Failed to load leaderboard. Please try again.");
     } finally {
       setLoading(false);
     }
-  }, [difficulty]);
+  }, [difficulty, leaderboardType]);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -81,11 +104,33 @@ export function Leaderboards() {
   return (
     <div className="leaderboards-page">
       <div className="leaderboards-header">
-        <h1>🏆 Fastest Flag Capture</h1>
-        <p>Top players who captured the flag with the fewest moves</p>
+        <h1>
+          🏆{" "}
+          {leaderboardType === "fastest" ? "Fastest Flag Capture" : "Most Wins"}
+        </h1>
+        <p>
+          {leaderboardType === "fastest"
+            ? "Top players who captured the flag with the fewest moves"
+            : "Top players with the most victories"}
+        </p>
         <Link to="/" className="back-link">
           ← Back to Game
         </Link>
+      </div>
+
+      <div className="leaderboard-type-tabs">
+        <button
+          className={leaderboardType === "fastest" ? "active" : ""}
+          onClick={() => setLeaderboardType("fastest")}
+        >
+          🏃 Fastest Capture
+        </button>
+        <button
+          className={leaderboardType === "wins" ? "active" : ""}
+          onClick={() => setLeaderboardType("wins")}
+        >
+          🔥 Most Wins
+        </button>
       </div>
 
       <div className="difficulty-tabs">
@@ -123,54 +168,116 @@ export function Leaderboards() {
         </div>
       )}
 
-      {!loading && !error && leaderboard.length === 0 && (
-        <div className="empty-message">
-          <p>No entries yet for {difficulty} difficulty.</p>
-          <p>Be the first to set a record!</p>
-        </div>
-      )}
+      {!loading &&
+        !error &&
+        leaderboardType === "fastest" &&
+        leaderboard.length === 0 && (
+          <div className="empty-message">
+            <p>No entries yet for {difficulty} difficulty.</p>
+            <p>Be the first to set a record!</p>
+          </div>
+        )}
 
-      {!loading && !error && leaderboard.length > 0 && (
-        <div className="leaderboard-table-container">
-          <table className="leaderboard-table">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Player</th>
-                <th>Moves</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboard.map((entry, index) => (
-                <tr
-                  key={index}
-                  className={`${index < 3 ? `rank-${index + 1}` : ""} ${
-                    currentUser && entry.userId === currentUser.uid
-                      ? "current-user"
-                      : ""
-                  }`}
-                >
-                  <td className="rank-cell">
-                    <span className="rank-number">{index + 1}</span>
-                    {getMedalEmoji(index + 1)}
-                  </td>
-                  <td className="username-cell">
-                    {entry.username}
-                    {currentUser && entry.userId === currentUser.uid && (
-                      <span className="you-badge">You</span>
-                    )}
-                  </td>
-                  <td className="moves-cell">
-                    <strong>{entry.moves}</strong> moves
-                  </td>
-                  <td className="date-cell">{formatDate(entry.timestamp)}</td>
+      {!loading &&
+        !error &&
+        leaderboardType === "wins" &&
+        winsLeaderboard.length === 0 && (
+          <div className="empty-message">
+            <p>No wins yet for {difficulty} difficulty.</p>
+            <p>Be the first to claim victory!</p>
+          </div>
+        )}
+
+      {!loading &&
+        !error &&
+        leaderboardType === "fastest" &&
+        leaderboard.length > 0 && (
+          <div className="leaderboard-table-container">
+            <table className="leaderboard-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Player</th>
+                  <th>Moves</th>
+                  <th>Date</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {leaderboard.map((entry, index) => (
+                  <tr
+                    key={index}
+                    className={`${index < 3 ? `rank-${index + 1}` : ""} ${
+                      currentUser && entry.userId === currentUser.uid
+                        ? "current-user"
+                        : ""
+                    }`}
+                  >
+                    <td className="rank-cell">
+                      <span className="rank-number">{index + 1}</span>
+                      {getMedalEmoji(index + 1)}
+                    </td>
+                    <td className="username-cell">
+                      {entry.username}
+                      {currentUser && entry.userId === currentUser.uid && (
+                        <span className="you-badge">You</span>
+                      )}
+                    </td>
+                    <td className="moves-cell">
+                      <strong>{entry.moves}</strong> moves
+                    </td>
+                    <td className="date-cell">{formatDate(entry.timestamp)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+      {!loading &&
+        !error &&
+        leaderboardType === "wins" &&
+        winsLeaderboard.length > 0 && (
+          <div className="leaderboard-table-container">
+            <table className="leaderboard-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Player</th>
+                  <th>Wins</th>
+                  <th>Last Win</th>
+                </tr>
+              </thead>
+              <tbody>
+                {winsLeaderboard.map((entry, index) => (
+                  <tr
+                    key={index}
+                    className={`${index < 3 ? `rank-${index + 1}` : ""} ${
+                      currentUser && entry.userId === currentUser.uid
+                        ? "current-user"
+                        : ""
+                    }`}
+                  >
+                    <td className="rank-cell">
+                      <span className="rank-number">{index + 1}</span>
+                      {getMedalEmoji(index + 1)}
+                    </td>
+                    <td className="username-cell">
+                      {entry.username}
+                      {currentUser && entry.userId === currentUser.uid && (
+                        <span className="you-badge">You</span>
+                      )}
+                    </td>
+                    <td className="wins-cell">
+                      <strong>{entry.wins}</strong>{" "}
+                      {entry.wins === 1 ? "win" : "wins"}
+                    </td>
+                    <td className="date-cell">{formatDate(entry.lastWin)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
       {!currentUser && (
         <div className="login-prompt">

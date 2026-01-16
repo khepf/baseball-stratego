@@ -60,6 +60,7 @@ export const useGameLogic = (currentUser?: FirebaseUser | null) => {
 
   // Track player 1 moves for leaderboard
   const player1Moves = useRef<number>(0);
+  const gameSaved = useRef<boolean>(false);
 
   function initializeBoard(): BoardSquare[][] {
     const board: BoardSquare[][] = [];
@@ -382,20 +383,6 @@ export const useGameLogic = (currentUser?: FirebaseUser | null) => {
             gameWinSound
               .play()
               .catch((err) => console.log("Audio play failed:", err));
-
-            // Save game result to leaderboard if user is logged in
-            if (currentUser) {
-              saveGameResult({
-                userId: currentUser.uid,
-                username: currentUser.displayName || "Anonymous",
-                moves: player1Moves.current,
-                difficulty: prev.aiDifficulty,
-                timestamp: serverTimestamp() as FieldValue,
-                won: true,
-              }).catch((err) =>
-                console.error("Failed to save game result:", err)
-              );
-            }
           } else {
             const gameLoseSound = new Audio(gameLoseFile);
             gameLoseSound.volume = 0.6;
@@ -514,6 +501,31 @@ export const useGameLogic = (currentUser?: FirebaseUser | null) => {
     movePiece,
   ]);
 
+  // Save game result when game finishes (only once)
+  useEffect(() => {
+    if (
+      gameState.gamePhase === "finished" &&
+      gameState.winner === 1 &&
+      currentUser &&
+      !gameSaved.current
+    ) {
+      gameSaved.current = true;
+      saveGameResult({
+        userId: currentUser.uid,
+        username: currentUser.displayName || "Anonymous",
+        moves: player1Moves.current,
+        difficulty: gameState.aiDifficulty,
+        timestamp: serverTimestamp() as FieldValue,
+        won: true,
+      }).catch((err) => console.error("Failed to save game result:", err));
+    }
+  }, [
+    gameState.gamePhase,
+    gameState.winner,
+    gameState.aiDifficulty,
+    currentUser,
+  ]);
+
   const resetGame = useCallback(() => {
     setGameState((prev) => ({
       board: initializeBoard(),
@@ -528,6 +540,7 @@ export const useGameLogic = (currentUser?: FirebaseUser | null) => {
     }));
     setTeamData(null);
     player1Moves.current = 0; // Reset move counter
+    gameSaved.current = false; // Reset game saved flag
   }, []);
 
   const setDifficulty = useCallback(

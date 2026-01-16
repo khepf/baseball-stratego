@@ -8,6 +8,14 @@ export interface LeaderboardEntry {
   timestamp: Timestamp;
 }
 
+export interface WinsLeaderboardEntry {
+  userId: string;
+  username: string;
+  wins: number; // Total number of wins
+  difficulty: "easy" | "medium" | "hard";
+  lastWin: Timestamp;
+}
+
 export interface GameResult {
   userId: string;
   username: string;
