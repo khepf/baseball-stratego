@@ -60,6 +60,30 @@ public class TeamsController : ControllerBase
     }
 
     /// <summary>
+    /// Gets all MLB teams (current and historical)
+    /// </summary>
+    /// <returns>List of all MLB teams</returns>
+    [HttpGet("all")]
+    public async Task<ActionResult<List<MlbTeam>>> GetAllTeams()
+    {
+        try
+        {
+            _logger.LogInformation("Fetching all MLB teams");
+            
+            var teams = await _mlbStatsService.GetAllTeamsAsync();
+            
+            _logger.LogInformation("Successfully returned {Count} MLB teams", teams.Count);
+            
+            return Ok(teams);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while fetching all teams");
+            return StatusCode(500, "An error occurred while processing your request");
+        }
+    }
+
+    /// <summary>
     /// Health check endpoint
     /// </summary>
     /// <returns>Simple status message</returns>

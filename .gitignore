@@ -124,3 +124,6 @@ coverage/
 tmp/
 temp/
 *.tmp
+
+# Scripts folder (contains service account keys)
+scripts/

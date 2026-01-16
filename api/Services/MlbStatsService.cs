@@ -178,7 +178,7 @@ public class MlbStatsService : IMlbStatsService
         return sortedList;
     }
 
-    private async Task<List<MlbTeam>> GetAllTeamsAsync()
+    public async Task<List<MlbTeam>> GetAllTeamsAsync()
     {
         try
         {
