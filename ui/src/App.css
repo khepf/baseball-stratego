@@ -20,13 +20,13 @@
   max-width: 800px;
   margin: 0 auto;
   background: #2d3748;
-  padding: 2rem;
+  padding: 1rem;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .setup-screen h2 {
-  margin-top: 0;
+  margin-bottom: 0.5rem;
   color: #63b3ed;
 }
 

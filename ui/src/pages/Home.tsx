@@ -65,10 +65,6 @@ export function Home() {
             <h2>
               Click below to fetch random baseball teams and start the game.
             </h2>
-            <p>
-              ( Be patient. It may take a minute to retrieve and set up the
-              teams. )
-            </p>
             <div className="difficulty-selector">
               <label htmlFor="difficulty">AI Difficulty: </label>
               <select

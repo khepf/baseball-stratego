@@ -62,17 +62,6 @@
   transition: all 0.2s;
 }
 
-/* .setup-screen .difficulty-selector select:hover {
-  background-color: #f0f9ff;
-  border-color: #2b6cb0;
-  transform: scale(1.02);
-}
-
-.setup-screen .difficulty-selector select:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.3);
-} */
-
 /* Start New Game Button */
 .start-button {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
