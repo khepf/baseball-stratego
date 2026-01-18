@@ -67,6 +67,18 @@ interface OpeningStrategy {
   estimatedFlagZone: Position[];
 }
 
+interface PlayerProfile {
+  aggressionLevel: number; // 0-100, how often they attack vs defend
+  riskTolerance: number; // 0-100, how often they make risky moves
+  favoritePieces: Map<string, number>; // Which pieces they use most
+  responsePattern: "aggressive" | "defensive" | "adaptive" | "unknown";
+  bluffFrequency: number; // How often they feint or retreat
+  totalMoves: number;
+  attackMoves: number;
+  defensiveMoves: number;
+  sacrifices: number; // Times they traded unfavorably
+}
+
 type Difficulty = "easy" | "medium" | "hard";
 type GamePhase = "opening" | "midgame" | "endgame";
 
@@ -81,6 +93,9 @@ export class StrategoAI {
   private flagCandidates: Set<string>; // Possible flag locations
   private enemyStrategy: OpeningStrategy | null;
   private detectedFormations: Formation[];
+  private playerProfile: PlayerProfile;
+  private bluffMode: boolean; // Currently executing a bluff
+  private lastBluffTurn: number;
 
   constructor(difficulty: Difficulty = "medium") {
     this.difficulty = difficulty;
@@ -93,6 +108,23 @@ export class StrategoAI {
     this.ourPieceCounts = this.initializePieceCounts();
     this.enemyStrategy = null;
     this.detectedFormations = [];
+    this.playerProfile = this.initializePlayerProfile();
+    this.bluffMode = false;
+    this.lastBluffTurn = 0;
+  }
+
+  private initializePlayerProfile(): PlayerProfile {
+    return {
+      aggressionLevel: 50,
+      riskTolerance: 50,
+      favoritePieces: new Map(),
+      responsePattern: "unknown",
+      bluffFrequency: 0,
+      totalMoves: 0,
+      attackMoves: 0,
+      defensiveMoves: 0,
+      sacrifices: 0,
+    };
   }
 
   private initializePieceCounts(): Map<string, PieceCount> {
@@ -375,6 +407,90 @@ export class StrategoAI {
               : "tie",
         );
       }
+    }
+
+    // PLAYER MODELING: Analyze opponent's move patterns
+    this.updatePlayerProfile(gameState, lastMove, lastMoveHistory);
+  }
+
+  // PLAYER MODELING: Update profile based on opponent actions
+  private updatePlayerProfile(
+    gameState: GameState,
+    lastMove: { from: Position; to: Position },
+    moveHistory?: any,
+  ): void {
+    this.playerProfile.totalMoves++;
+
+    const targetSquare = gameState.board[lastMove.to.row][lastMove.to.col];
+    const wasAttack = moveHistory?.capturedPiece || targetSquare.piece;
+
+    // Track aggression
+    if (wasAttack) {
+      this.playerProfile.attackMoves++;
+    } else {
+      // Check if defensive (moving toward their own flag or away from threats)
+      const movedPiece = targetSquare.piece;
+      if (movedPiece && lastMove.to.row < lastMove.from.row) {
+        // Moving back toward their territory
+        this.playerProfile.defensiveMoves++;
+      }
+    }
+
+    // Calculate aggression level (0-100)
+    if (this.playerProfile.totalMoves > 5) {
+      this.playerProfile.aggressionLevel = Math.round(
+        (this.playerProfile.attackMoves / this.playerProfile.totalMoves) * 100,
+      );
+    }
+
+    // Track piece usage
+    if (moveHistory?.piece) {
+      const rank = moveHistory.piece.rank;
+      const current = this.playerProfile.favoritePieces.get(rank) || 0;
+      this.playerProfile.favoritePieces.set(rank, current + 1);
+    }
+
+    // Detect sacrifices (unfavorable trades)
+    if (moveHistory?.battleResult === "defender-wins" && moveHistory.piece) {
+      const attackerValue = moveHistory.piece.rankValue;
+      const defenderValue = moveHistory.capturedPiece?.rankValue || 0;
+      if (attackerValue > defenderValue + 2) {
+        this.playerProfile.sacrifices++;
+        this.playerProfile.riskTolerance = Math.min(
+          100,
+          this.playerProfile.riskTolerance + 5,
+        );
+      }
+    }
+
+    // Determine response pattern
+    if (this.playerProfile.totalMoves > 10) {
+      if (this.playerProfile.aggressionLevel > 70) {
+        this.playerProfile.responsePattern = "aggressive";
+      } else if (this.playerProfile.aggressionLevel < 30) {
+        this.playerProfile.responsePattern = "defensive";
+      } else {
+        this.playerProfile.responsePattern = "adaptive";
+      }
+    }
+
+    // Track bluffing (retreating after showing aggression)
+    const recentMoves = gameState.moveHistory.slice(-3);
+    let aggressiveThenRetreat = 0;
+    for (let i = 0; i < recentMoves.length - 1; i++) {
+      const move1 = recentMoves[i];
+      const move2 = recentMoves[i + 1];
+      if (
+        move1.piece.player === 1 &&
+        move2.piece.player === 1 &&
+        move1.to.row > move1.from.row &&
+        move2.to.row < move2.from.row
+      ) {
+        aggressiveThenRetreat++;
+      }
+    }
+    if (aggressiveThenRetreat > 0) {
+      this.playerProfile.bluffFrequency++;
     }
   }
 
@@ -828,6 +944,221 @@ export class StrategoAI {
     }
 
     return bonus;
+  }
+
+  // MINIMAX: Multi-move lookahead for hard difficulty
+  private minimax(
+    gameState: GameState,
+    depth: number,
+    alpha: number,
+    beta: number,
+    maximizingPlayer: boolean,
+  ): number {
+    // Base case: reached depth limit or game over
+    if (depth === 0 || gameState.winner !== null) {
+      return this.evaluateBoardState(gameState);
+    }
+
+    const player = maximizingPlayer ? 2 : 1;
+    const moves = this.getAllPossibleMoves(gameState, player);
+
+    if (moves.length === 0) {
+      return maximizingPlayer ? -10000 : 10000;
+    }
+
+    if (maximizingPlayer) {
+      let maxEval = -Infinity;
+      for (const move of moves.slice(0, 15)) {
+        // Limit branching factor
+        const newState = this.simulateMove(gameState, move);
+        const evaluation = this.minimax(
+          newState,
+          depth - 1,
+          alpha,
+          beta,
+          false,
+        );
+        maxEval = Math.max(maxEval, evaluation);
+        alpha = Math.max(alpha, evaluation);
+        if (beta <= alpha) break; // Beta cutoff
+      }
+      return maxEval;
+    } else {
+      let minEval = Infinity;
+      for (const move of moves.slice(0, 15)) {
+        const newState = this.simulateMove(gameState, move);
+        const evaluation = this.minimax(newState, depth - 1, alpha, beta, true);
+        minEval = Math.min(minEval, evaluation);
+        beta = Math.min(beta, evaluation);
+        if (beta <= alpha) break; // Alpha cutoff
+      }
+      return minEval;
+    }
+  }
+
+  private evaluateBoardState(gameState: GameState): number {
+    let score = 0;
+
+    // Game over conditions
+    if (gameState.winner === 2) return 10000; // AI wins
+    if (gameState.winner === 1) return -10000; // Player wins
+
+    // Material count
+    let ourMaterial = 0;
+    let enemyMaterial = 0;
+
+    for (let row = 0; row < 10; row++) {
+      for (let col = 0; col < 10; col++) {
+        const piece = gameState.board[row][col].piece;
+        if (piece && !piece.isCaptured) {
+          const value = this.getDynamicPieceValue(piece);
+          if (piece.player === 2) {
+            ourMaterial += value;
+            // Bonus for advanced position
+            if (row <= 3) score += 2;
+          } else {
+            enemyMaterial += value;
+            // Penalty for enemy advancement
+            if (row >= 6) score -= 2;
+          }
+        }
+      }
+    }
+
+    score += ourMaterial - enemyMaterial;
+
+    // Positional advantages
+    const flagPos = this.findOurFlag(gameState);
+    if (flagPos) {
+      // Check flag safety
+      let defenderCount = 0;
+      for (let dr = -2; dr <= 2; dr++) {
+        for (let dc = -2; dc <= 2; dc++) {
+          const r = flagPos.row + dr;
+          const c = flagPos.col + dc;
+          if (r >= 0 && r < 10 && c >= 0 && c < 10) {
+            const piece = gameState.board[r][c].piece;
+            if (piece && piece.player === 2 && !piece.isCaptured) {
+              defenderCount++;
+            }
+          }
+        }
+      }
+      score += defenderCount * 5;
+    }
+
+    return score;
+  }
+
+  private simulateMove(gameState: GameState, move: MoveOption): GameState {
+    // Create a shallow copy of the game state
+    const newState: GameState = JSON.parse(JSON.stringify(gameState));
+
+    // Execute the move
+    const fromSquare = newState.board[move.from.row][move.from.col];
+    const toSquare = newState.board[move.to.row][move.to.col];
+
+    const movingPiece = fromSquare.piece;
+    const targetPiece = toSquare.piece;
+
+    if (movingPiece) {
+      // Handle battle
+      if (targetPiece) {
+        // Simplified battle resolution
+        if (movingPiece.rank === "Spy" && targetPiece.rank === "Marshal") {
+          toSquare.piece = movingPiece;
+          fromSquare.piece = null;
+        } else if (
+          movingPiece.rank === "Miner" &&
+          targetPiece.rank === "Bomb"
+        ) {
+          toSquare.piece = movingPiece;
+          fromSquare.piece = null;
+        } else if (movingPiece.rankValue > targetPiece.rankValue) {
+          toSquare.piece = movingPiece;
+          fromSquare.piece = null;
+        } else if (movingPiece.rankValue < targetPiece.rankValue) {
+          fromSquare.piece = null;
+        } else {
+          fromSquare.piece = null;
+          toSquare.piece = null;
+        }
+      } else {
+        toSquare.piece = movingPiece;
+        fromSquare.piece = null;
+      }
+    }
+
+    // Switch current player
+    newState.currentPlayer = newState.currentPlayer === 1 ? 2 : 1;
+
+    return newState;
+  }
+
+  // BLUFFING: Strategic deception tactics
+  private shouldBluff(): boolean {
+    if (this.difficulty !== "hard") return false;
+    if (this.turnNumber - this.lastBluffTurn < 8) return false; // Don't bluff too often
+
+    // Bluff based on opponent profile
+    if (this.playerProfile.responsePattern === "aggressive") {
+      // Aggressive players chase retreating pieces
+      return Math.random() < 0.25;
+    } else if (this.playerProfile.responsePattern === "defensive") {
+      // Defensive players are scared by aggressive moves
+      return Math.random() < 0.15;
+    }
+
+    return Math.random() < 0.1;
+  }
+
+  private getBluffMove(gameState: GameState): MoveOption | null {
+    // Bluff strategies:
+    // 1. Advance high-value piece aggressively then retreat
+    // 2. Protect empty area as if flag is there
+    // 3. Move weak piece boldly to appear strong
+
+    const bluffType = Math.floor(Math.random() * 3);
+    const moves = this.getAllPossibleMoves(gameState, 2);
+
+    if (bluffType === 0) {
+      // Advance strong piece into enemy territory
+      const strongPieces = moves.filter(
+        (m) => m.piece.rankValue >= 8 && m.to.row <= 4,
+      );
+      if (strongPieces.length > 0) {
+        this.bluffMode = true;
+        this.lastBluffTurn = this.turnNumber;
+        return strongPieces[Math.floor(Math.random() * strongPieces.length)];
+      }
+    } else if (bluffType === 1) {
+      // Protect decoy area
+      const flagPos = this.findOurFlag(gameState);
+      if (flagPos) {
+        // Find area away from real flag
+        const decoyMoves = moves.filter((m) => {
+          const distToFlag = this.getDistanceToPosition(m.to, flagPos);
+          return distToFlag >= 5 && m.to.row >= 7;
+        });
+        if (decoyMoves.length > 0) {
+          this.bluffMode = true;
+          this.lastBluffTurn = this.turnNumber;
+          return decoyMoves[Math.floor(Math.random() * decoyMoves.length)];
+        }
+      }
+    } else {
+      // Move weak piece boldly
+      const weakPieces = moves.filter(
+        (m) => m.piece.rankValue <= 4 && m.to.row <= 5,
+      );
+      if (weakPieces.length > 0) {
+        this.bluffMode = true;
+        this.lastBluffTurn = this.turnNumber;
+        return weakPieces[Math.floor(Math.random() * weakPieces.length)];
+      }
+    }
+
+    return null;
   }
 
   private initializeProbabilities(): Map<string, number> {
@@ -1531,6 +1862,71 @@ export class StrategoAI {
       }
     }
 
+    // PLAYER MODELING: Adapt to opponent's playstyle
+    if (this.difficulty === "hard" && this.playerProfile.totalMoves > 10) {
+      const profile = this.playerProfile;
+
+      // Counter aggressive players with defensive positioning
+      if (profile.responsePattern === "aggressive") {
+        const flagPos = this.findOurFlag(gameState);
+        if (flagPos) {
+          const distToFlag = this.getDistanceToPosition(move.to, flagPos);
+          if (distToFlag <= 3 && move.piece.rankValue >= 6) {
+            score += 20; // Fortify defense against aggressive opponent
+          }
+        }
+
+        // Bait aggressive players with weak pieces
+        if (move.piece.rankValue <= 3 && move.to.row <= 5) {
+          // Check if we have strong piece nearby for follow-up
+          if (this.canFollowUpAttack(move.to, gameState)) {
+            score += 25; // Set trap for aggressive player
+          }
+        }
+      }
+
+      // Counter defensive players with probing attacks
+      if (profile.responsePattern === "defensive") {
+        if (
+          (move.piece.rank === "Scout" || move.piece.rank === "Miner") &&
+          move.to.row <= 3
+        ) {
+          score += 22; // Probe defensive positions
+        }
+      }
+
+      // Exploit risk-averse players
+      if (
+        profile.riskTolerance < 40 &&
+        targetPiece &&
+        !targetPiece.isRevealed
+      ) {
+        if (move.piece.rankValue <= 4) {
+          score += 18; // They'll likely retreat from unknowns
+        }
+      }
+
+      // Counter players who favor specific pieces
+      if (profile.favoritePieces.size > 0) {
+        const mostUsed = Array.from(profile.favoritePieces.entries()).sort(
+          (a, b) => b[1] - a[1],
+        )[0];
+        if (mostUsed && targetPiece?.rank === mostUsed[0]) {
+          score += 15; // Target their favorite piece
+        }
+      }
+    }
+
+    // BLUFFING: Deception bonus
+    if (this.bluffMode && this.difficulty === "hard") {
+      // If we're executing a bluff, adjust scoring
+      if (move.piece.rankValue >= 8 && move.to.row > move.from.row) {
+        // Retreat during bluff
+        score += 40;
+        this.bluffMode = false; // End bluff after retreat
+      }
+    }
+
     // THREAT CHAIN RESPONSE: Counter multi-move threats
     if (this.difficulty === "hard") {
       const threats = this.analyzeThreatChains(gameState);
@@ -1994,6 +2390,49 @@ export class StrategoAI {
   ): { from: Position; to: Position } | null {
     // Update memory based on current board state
     this.updateMemory(gameState);
+
+    // HARD MODE: Use minimax in critical endgame situations
+    if (
+      this.difficulty === "hard" &&
+      this.gamePhase === "endgame" &&
+      this.turnNumber % 3 === 0
+    ) {
+      // Use minimax every 3rd turn in endgame to save computation
+      const allMoves = this.getAllPossibleMoves(gameState, 2);
+      if (allMoves.length > 0 && allMoves.length < 20) {
+        // Only use minimax when move space is manageable
+        let bestMove: MoveOption | null = null;
+        let bestScore = -Infinity;
+
+        // Evaluate top moves with minimax
+        for (const move of allMoves.slice(0, 10)) {
+          const newState = this.simulateMove(gameState, move);
+          const score = this.minimax(newState, 2, -Infinity, Infinity, false); // Depth 2
+          if (score > bestScore) {
+            bestScore = score;
+            bestMove = move;
+          }
+        }
+
+        if (bestMove) {
+          return {
+            from: bestMove.from,
+            to: bestMove.to,
+          };
+        }
+      }
+    }
+
+    // HARD MODE: Occasionally use bluffing tactics
+    if (this.shouldBluff()) {
+      const bluffMove = this.getBluffMove(gameState);
+      if (bluffMove) {
+        return {
+          from: bluffMove.from,
+          to: bluffMove.to,
+        };
+      }
+    }
 
     const allMoves = this.getAllPossibleMoves(gameState, 2); // AI is player 2
 
