@@ -369,17 +369,200 @@ export class StrategoAI {
   }
 
   private updateProbabilitiesFromBattle(
-    _attacker: GamePiece,
-    _defender: GamePiece,
-    _result: "attacker-wins" | "defender-wins" | "tie",
+    attacker: GamePiece,
+    defender: GamePiece,
+    result: "attacker-wins" | "defender-wins" | "tie",
   ): void {
     if (this.difficulty === "easy") return;
 
-    // TODO: If we learned new information about piece strengths, update memory
-    // For nearby unrevealed pieces, adjust probabilities based on what we learned
+    // Learn from battle outcome and update probabilities for nearby unrevealed pieces
+    const defenderKey = this.positionKey({
+      row: defender.id ? parseInt(defender.id.split("-")[0]) : 0,
+      col: defender.id ? parseInt(defender.id.split("-")[1]) : 0,
+    });
 
-    // Example: If attacker won, defender was weaker (or bomb killed non-miner)
-    // This helps us infer information about similar positioned pieces
+    // Determine what we learned about piece strengths
+    let inferredMinRank: number | null = null;
+    let inferredMaxRank: number | null = null;
+
+    if (result === "attacker-wins") {
+      // Attacker won - defender was weaker (or special case)
+      if (attacker.rank === "Spy" && defender.rank === "Marshal") {
+        // Special case - no inference about nearby pieces
+        return;
+      } else if (attacker.rank === "Miner" && defender.rank === "Bomb") {
+        // Learned this was a bomb - check nearby for more bombs
+        this.updateNearbyBombProbabilities(defenderKey);
+        return;
+      } else {
+        // Normal case: defender was weaker than attacker
+        inferredMaxRank = attacker.rankValue - 1;
+      }
+    } else if (result === "defender-wins") {
+      // Defender won - defender was stronger (or bomb)
+      if (defender.rank === "Bomb") {
+        // It was a bomb - update nearby bomb probabilities
+        this.updateNearbyBombProbabilities(defenderKey);
+        return;
+      } else {
+        // Defender was stronger than attacker
+        inferredMinRank = attacker.rankValue + 1;
+      }
+    } else {
+      // Tie - both same rank
+      inferredMinRank = attacker.rankValue;
+      inferredMaxRank = attacker.rankValue;
+    }
+
+    // Update probabilities for nearby unrevealed enemy pieces
+    this.updateNearbyPieceProbabilities(
+      defenderKey,
+      inferredMinRank,
+      inferredMaxRank,
+    );
+  }
+
+  private updateNearbyBombProbabilities(bombPositionKey: string): void {
+    // When we find a bomb, nearby stationary pieces are more likely to be bombs too
+    const bombPos = this.parsePositionKey(bombPositionKey);
+
+    for (const [, memory] of this.enemyMemory.entries()) {
+      if (memory.revealedInBattle || !memory.possibleRanks) continue;
+
+      const distance = this.getDistanceToPosition(
+        bombPos,
+        memory.lastSeenPosition,
+      );
+
+      // Nearby stationary pieces (within 2 squares) are more likely bombs
+      if (distance <= 2 && memory.turnsStationary >= 2) {
+        const probs = memory.possibleRanks;
+        const bombProb = probs.get("Bomb") || 0;
+
+        // Increase bomb probability significantly
+        probs.set("Bomb", Math.min(0.7, bombProb * 2.5));
+
+        // Decrease other mobile piece probabilities
+        for (const [rank, prob] of probs.entries()) {
+          if (rank !== "Bomb" && rank !== "Flag") {
+            probs.set(rank, prob * 0.5);
+          }
+        }
+
+        // Normalize probabilities
+        this.normalizeProbabilities(probs);
+      }
+    }
+  }
+
+  private updateNearbyPieceProbabilities(
+    positionKey: string,
+    minRank: number | null,
+    maxRank: number | null,
+  ): void {
+    const position = this.parsePositionKey(positionKey);
+
+    // Update probabilities for unrevealed pieces within 3 squares
+    for (const [, memory] of this.enemyMemory.entries()) {
+      if (memory.revealedInBattle || !memory.possibleRanks) continue;
+
+      const distance = this.getDistanceToPosition(
+        position,
+        memory.lastSeenPosition,
+      );
+
+      // Closer pieces get stronger updates
+      if (distance <= 3) {
+        const updateStrength = 1 - distance * 0.2; // 1.0 at distance 0, 0.4 at distance 3
+        this.updateProbabilityDistribution(
+          memory.possibleRanks,
+          minRank,
+          maxRank,
+          updateStrength,
+        );
+      }
+    }
+  }
+
+  private updateProbabilityDistribution(
+    probs: Map<string, number>,
+    minRank: number | null,
+    maxRank: number | null,
+    strength: number,
+  ): void {
+    const RANK_VALUES: Record<string, number> = {
+      Flag: 0,
+      Spy: 1,
+      Scout: 2,
+      Miner: 3,
+      Sergeant: 4,
+      Lieutenant: 5,
+      Captain: 6,
+      Major: 7,
+      Colonel: 8,
+      General: 9,
+      Marshal: 10,
+      Bomb: 11,
+    };
+
+    for (const [rank, currentProb] of probs.entries()) {
+      const rankValue = RANK_VALUES[rank];
+
+      let adjustment = 1.0;
+
+      // Increase probability if rank falls within inferred range
+      if (minRank !== null && maxRank !== null) {
+        if (rankValue >= minRank && rankValue <= maxRank) {
+          adjustment = 1 + strength * 0.5; // Increase by up to 50%
+        } else {
+          adjustment = 1 - strength * 0.3; // Decrease by up to 30%
+        }
+      } else if (minRank !== null) {
+        if (rankValue >= minRank) {
+          adjustment = 1 + strength * 0.4;
+        } else {
+          adjustment = 1 - strength * 0.4;
+        }
+      } else if (maxRank !== null) {
+        if (rankValue <= maxRank) {
+          adjustment = 1 + strength * 0.4;
+        } else {
+          adjustment = 1 - strength * 0.4;
+        }
+      }
+
+      // Check against remaining piece counts to eliminate impossibilities
+      const counts = this.enemyPieceCounts.get(rank);
+      if (counts && counts.remaining === 0) {
+        probs.set(rank, 0); // This rank is eliminated
+      } else {
+        probs.set(rank, currentProb * adjustment);
+      }
+    }
+
+    this.normalizeProbabilities(probs);
+  }
+
+  private normalizeProbabilities(probs: Map<string, number>): void {
+    // Ensure all probabilities sum to 1.0
+    const total = Array.from(probs.values()).reduce((sum, p) => sum + p, 0);
+
+    if (total > 0) {
+      for (const [rank, prob] of probs.entries()) {
+        probs.set(rank, prob / total);
+      }
+    } else {
+      // If all probabilities are 0, reset to uniform
+      const uniform = 1.0 / probs.size;
+      for (const rank of probs.keys()) {
+        probs.set(rank, uniform);
+      }
+    }
+  }
+
+  private parsePositionKey(key: string): Position {
+    const [row, col] = key.split("-").map(Number);
+    return { row, col };
   }
 
   private analyzeLastMove(gameState: GameState): void {
