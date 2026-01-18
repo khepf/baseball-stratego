@@ -1,8 +1,7 @@
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../config/firebase";
 import type { TeamData } from "../types/game";
+import mlbTeamsData from "../data/mlb_teams.json";
 
-interface FirebaseTeamData {
+interface TeamRecord {
   name: string;
   teamLosses: number;
   teamWinPct: number;
@@ -11,24 +10,17 @@ interface FirebaseTeamData {
 }
 
 export const fetchRandomTeamsFromFirebase = async (
-  count: number = 66
+  count: number = 66,
 ): Promise<TeamData[]> => {
   try {
-    // Fetch all teams from Firebase
-    const teamsCollection = collection(db, "mlbTeams");
-    const snapshot = await getDocs(teamsCollection);
-
-    // Convert to array
-    const allTeams: FirebaseTeamData[] = [];
-    snapshot.forEach((doc) => {
-      allTeams.push(doc.data() as FirebaseTeamData);
-    });
+    // Get all teams from local JSON file
+    const allTeams = Object.values(mlbTeamsData) as TeamRecord[];
 
     if (allTeams.length === 0) {
-      throw new Error("No teams found in Firebase");
+      throw new Error("No teams found in data");
     }
 
-    // Randomly select 66 teams
+    // Randomly select teams
     const selectedTeams = getRandomSubset(allTeams, count);
 
     // Sort by win percentage (descending)
@@ -132,7 +124,7 @@ export const fetchRandomTeamsFromFirebase = async (
 
     return teamDataList;
   } catch (error) {
-    console.error("Error fetching teams from Firebase:", error);
+    console.error("Error fetching teams:", error);
     throw error;
   }
 };
