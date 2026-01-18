@@ -18,25 +18,381 @@ interface EnemyPieceMemory {
   moveCount: number; // Track if piece is stationary (bomb/flag suspect)
   turnsStationary: number;
   revealedInBattle: boolean;
+  possibleRanks?: Map<string, number>; // Probability distribution of what this could be
+  firstSeenTurn?: number;
+  interactionHistory: string[]; // Track what pieces interacted with this one
+}
+
+interface BattleOutcome {
+  turn: number;
+  attackerRank: string;
+  attackerRankValue: number;
+  defenderRank?: string;
+  defenderRankValue?: number;
+  defenderPosition: Position;
+  result: "attacker-wins" | "defender-wins" | "tie";
+}
+
+interface PieceCount {
+  rank: string;
+  total: number;
+  captured: number;
+  remaining: number;
+}
+
+interface ThreatChain {
+  targetPosition: Position; // Where the threat ends (e.g., our flag)
+  threatPath: Position[]; // Sequence of positions enemy can use
+  threateningPiece: Position; // Current enemy piece position
+  movesAway: number; // How many moves until threat reaches target
+  severity: number; // Threat score (higher = more dangerous)
+}
+
+interface Formation {
+  type:
+    | "bomb-screen"
+    | "scout-line"
+    | "aggressive-wedge"
+    | "defensive-box"
+    | "miner-cluster";
+  centerPosition: Position;
+  pieces: Position[];
+  strength: number; // How strong/complete the formation is
+}
+
+interface OpeningStrategy {
+  setupPattern: "aggressive" | "defensive" | "balanced" | "unknown";
+  weakSide: "left" | "right" | "center" | "none";
+  scoutDeployment: "spread" | "concentrated" | "conservative";
+  estimatedFlagZone: Position[];
 }
 
 type Difficulty = "easy" | "medium" | "hard";
+type GamePhase = "opening" | "midgame" | "endgame";
 
 export class StrategoAI {
   private difficulty: Difficulty;
   private enemyMemory: Map<string, EnemyPieceMemory>;
+  private battleHistory: BattleOutcome[];
+  private enemyPieceCounts: Map<string, PieceCount>;
+  private ourPieceCounts: Map<string, PieceCount>;
+  private turnNumber: number;
+  private gamePhase: GamePhase;
+  private flagCandidates: Set<string>; // Possible flag locations
+  private enemyStrategy: OpeningStrategy | null;
+  private detectedFormations: Formation[];
 
   constructor(difficulty: Difficulty = "medium") {
     this.difficulty = difficulty;
     this.enemyMemory = new Map();
+    this.battleHistory = [];
+    this.turnNumber = 0;
+    this.gamePhase = "opening";
+    this.flagCandidates = new Set();
+    this.enemyPieceCounts = this.initializePieceCounts();
+    this.ourPieceCounts = this.initializePieceCounts();
+    this.enemyStrategy = null;
+    this.detectedFormations = [];
+  }
+
+  private initializePieceCounts(): Map<string, PieceCount> {
+    const counts = new Map<string, PieceCount>();
+    const PIECE_COUNTS: Record<string, number> = {
+      Flag: 1,
+      Spy: 1,
+      Scout: 8,
+      Miner: 5,
+      Sergeant: 4,
+      Lieutenant: 4,
+      Captain: 4,
+      Major: 3,
+      Colonel: 2,
+      General: 1,
+      Marshal: 1,
+      Bomb: 6,
+    };
+
+    for (const [rank, total] of Object.entries(PIECE_COUNTS)) {
+      counts.set(rank, { rank, total, captured: 0, remaining: total });
+    }
+    return counts;
   }
 
   private positionKey(pos: Position): string {
     return `${pos.row}-${pos.col}`;
   }
 
+  private determineGamePhase(gameState: GameState): GamePhase {
+    // Count total mobile pieces for both players
+    let totalPieces = 0;
+    for (let row = 0; row < 10; row++) {
+      for (let col = 0; col < 10; col++) {
+        const piece = gameState.board[row][col].piece;
+        if (
+          piece &&
+          !piece.isCaptured &&
+          piece.rank !== "Bomb" &&
+          piece.rank !== "Flag"
+        ) {
+          totalPieces++;
+        }
+      }
+    }
+
+    // Opening: > 60 mobile pieces, Midgame: 30-60, Endgame: < 30
+    if (totalPieces > 60) return "opening";
+    if (totalPieces > 30) return "midgame";
+    return "endgame";
+  }
+
+  private updatePieceCounts(gameState: GameState): void {
+    if (this.difficulty === "easy") return;
+
+    // Reset captured counts
+    for (const count of this.enemyPieceCounts.values()) {
+      count.captured = 0;
+    }
+    for (const count of this.ourPieceCounts.values()) {
+      count.captured = 0;
+    }
+
+    // Count captured pieces
+    for (const capturedPiece of gameState.capturedPieces) {
+      const counts =
+        capturedPiece.player === 1
+          ? this.enemyPieceCounts
+          : this.ourPieceCounts;
+      const count = counts.get(capturedPiece.rank);
+      if (count) {
+        count.captured++;
+        count.remaining = count.total - count.captured;
+      }
+    }
+  }
+
+  private getDynamicPieceValue(piece: GamePiece): number {
+    if (this.difficulty === "easy") return piece.rankValue;
+
+    let value = piece.rankValue;
+    const counts =
+      piece.player === 2 ? this.ourPieceCounts : this.enemyPieceCounts;
+
+    // SCARCITY: Last of a type is more valuable
+    const pieceCount = counts.get(piece.rank);
+    if (pieceCount && pieceCount.remaining === 1) {
+      value *= 1.5; // 50% bonus for last piece of type
+    } else if (pieceCount && pieceCount.remaining === 2) {
+      value *= 1.25; // 25% bonus for second-to-last
+    }
+
+    // GAME PHASE adjustments
+    if (this.gamePhase === "opening") {
+      // Scouts more valuable early (exploration)
+      if (piece.rank === "Scout") value *= 1.4;
+      // Miners valuable early (clearing bombs)
+      if (piece.rank === "Miner") value *= 1.2;
+    } else if (this.gamePhase === "midgame") {
+      // Balanced piece values
+      if (piece.rankValue >= 6 && piece.rankValue <= 8) value *= 1.2;
+    } else if (this.gamePhase === "endgame") {
+      // High-value pieces critical in endgame
+      if (piece.rank === "Marshal" || piece.rank === "General") value *= 1.6;
+      // Scouts less valuable late
+      if (piece.rank === "Scout") value *= 0.7;
+    }
+
+    // CONTEXT: Spy worthless if Marshal captured
+    if (piece.rank === "Spy") {
+      const enemyCounts =
+        piece.player === 1 ? this.ourPieceCounts : this.enemyPieceCounts;
+      const marshalCount = enemyCounts.get("Marshal");
+      if (marshalCount && marshalCount.remaining === 0) {
+        value *= 0.3; // Spy loses most value without Marshal target
+      }
+    }
+
+    // CONTEXT: Miners more valuable if bombs remain
+    if (piece.rank === "Miner") {
+      const enemyCounts =
+        piece.player === 1 ? this.ourPieceCounts : this.enemyPieceCounts;
+      const bombCount = enemyCounts.get("Bomb");
+      if (bombCount && bombCount.remaining >= 3) {
+        value *= 1.3; // Miners valuable when many bombs remain
+      }
+    }
+
+    return value;
+  }
+
+  // OPENING STRATEGY: Analyze enemy setup and deployment
+  private analyzeOpeningStrategy(gameState: GameState): OpeningStrategy {
+    if (this.difficulty === "easy" || this.turnNumber > 15) {
+      return {
+        setupPattern: "unknown",
+        weakSide: "none",
+        scoutDeployment: "spread",
+        estimatedFlagZone: [],
+      };
+    }
+
+    let leftPieces = 0;
+    let rightPieces = 0;
+    let centerPieces = 0;
+    let frontLinePieces = 0; // Pieces in rows 3-4
+    let backLinePieces = 0; // Pieces in rows 0-2
+    const scoutPositions: Position[] = [];
+    const estimatedFlagZone: Position[] = [];
+
+    // Scan enemy territory
+    for (let row = 0; row < 10; row++) {
+      for (let col = 0; col < 10; col++) {
+        const piece = gameState.board[row][col].piece;
+        if (piece && piece.player === 1 && !piece.isCaptured) {
+          // Count by column zones
+          if (col <= 3) leftPieces++;
+          else if (col >= 6) rightPieces++;
+          else centerPieces++;
+
+          // Count by row zones (enemy perspective)
+          if (row <= 2) backLinePieces++;
+          else if (row <= 4) frontLinePieces++;
+
+          // Track scouts
+          if (piece.isRevealed && piece.rank === "Scout") {
+            scoutPositions.push({ row, col });
+          }
+
+          // Track stationary pieces in back rows as flag zone
+          const key = this.positionKey({ row, col });
+          const memory = this.enemyMemory.get(key);
+          if (row <= 2 && memory && memory.turnsStationary >= 2) {
+            estimatedFlagZone.push({ row, col });
+          }
+        }
+      }
+    }
+
+    // Determine setup pattern
+    let setupPattern: "aggressive" | "defensive" | "balanced" | "unknown";
+    if (frontLinePieces > backLinePieces * 1.5) {
+      setupPattern = "aggressive"; // Many pieces forward
+    } else if (backLinePieces > frontLinePieces * 1.5) {
+      setupPattern = "defensive"; // Pieces held back
+    } else {
+      setupPattern = "balanced";
+    }
+
+    // Determine weak side
+    let weakSide: "left" | "right" | "center" | "none";
+    const total = leftPieces + rightPieces + centerPieces;
+    if (leftPieces < total * 0.25) weakSide = "left";
+    else if (rightPieces < total * 0.25) weakSide = "right";
+    else if (centerPieces < total * 0.25) weakSide = "center";
+    else weakSide = "none";
+
+    // Analyze scout deployment
+    let scoutDeployment: "spread" | "concentrated" | "conservative";
+    if (scoutPositions.length >= 4) {
+      const avgCol =
+        scoutPositions.reduce((sum, p) => sum + p.col, 0) /
+        scoutPositions.length;
+      const variance =
+        scoutPositions.reduce(
+          (sum, p) => sum + Math.pow(p.col - avgCol, 2),
+          0,
+        ) / scoutPositions.length;
+      scoutDeployment = variance > 8 ? "spread" : "concentrated";
+    } else {
+      scoutDeployment = "conservative";
+    }
+
+    return {
+      setupPattern,
+      weakSide,
+      scoutDeployment,
+      estimatedFlagZone,
+    };
+  }
+
+  private recordBattle(
+    attackerPiece: GamePiece,
+    defenderPiece: GamePiece,
+    defenderPosition: Position,
+    result: "attacker-wins" | "defender-wins" | "tie",
+  ): void {
+    if (this.difficulty === "easy") return;
+
+    this.battleHistory.push({
+      turn: this.turnNumber,
+      attackerRank: attackerPiece.rank,
+      attackerRankValue: attackerPiece.rankValue,
+      defenderRank: defenderPiece.rank,
+      defenderRankValue: defenderPiece.rankValue,
+      defenderPosition,
+      result,
+    });
+
+    // Update probability estimates based on battle outcome
+    this.updateProbabilitiesFromBattle(attackerPiece, defenderPiece, result);
+  }
+
+  private updateProbabilitiesFromBattle(
+    _attacker: GamePiece,
+    _defender: GamePiece,
+    _result: "attacker-wins" | "defender-wins" | "tie",
+  ): void {
+    if (this.difficulty === "easy") return;
+
+    // TODO: If we learned new information about piece strengths, update memory
+    // For nearby unrevealed pieces, adjust probabilities based on what we learned
+
+    // Example: If attacker won, defender was weaker (or bomb killed non-miner)
+    // This helps us infer information about similar positioned pieces
+  }
+
+  private analyzeLastMove(gameState: GameState): void {
+    if (this.difficulty === "easy" || !gameState.lastOpponentMove) return;
+
+    const lastMove = gameState.lastOpponentMove;
+    const targetSquare = gameState.board[lastMove.to.row][lastMove.to.col];
+    const movedPiece = targetSquare.piece;
+
+    // Check if last move was a battle
+    const lastMoveHistory =
+      gameState.moveHistory[gameState.moveHistory.length - 1];
+    if (lastMoveHistory?.battleResult && lastMoveHistory.capturedPiece) {
+      // A battle occurred - record it
+      if (movedPiece && lastMoveHistory.piece.player === 1) {
+        // Enemy attacked us
+        this.recordBattle(
+          lastMoveHistory.piece,
+          lastMoveHistory.capturedPiece,
+          lastMove.to,
+          lastMoveHistory.battleResult === "attacker-wins"
+            ? "attacker-wins"
+            : lastMoveHistory.battleResult === "defender-wins"
+              ? "defender-wins"
+              : "tie",
+        );
+      }
+    }
+  }
+
   private updateMemory(gameState: GameState): void {
     if (this.difficulty === "easy") return; // Easy mode doesn't use memory
+
+    this.turnNumber++;
+    this.gamePhase = this.determineGamePhase(gameState);
+    this.updatePieceCounts(gameState);
+    this.analyzeLastMove(gameState);
+
+    // Opening strategy analysis (first 10 turns)
+    if (this.turnNumber <= 10) {
+      this.enemyStrategy = this.analyzeOpeningStrategy(gameState);
+    }
+
+    // Formation recognition (medium/hard)
+    this.detectedFormations = this.recognizeFormations(gameState);
 
     const currentEnemyPositions = new Set<string>();
 
@@ -79,7 +435,17 @@ export class StrategoAI {
               revealedInBattle: piece.isRevealed,
               rank: piece.isRevealed ? piece.rank : undefined,
               rankValue: piece.isRevealed ? piece.rankValue : undefined,
+              firstSeenTurn: this.turnNumber,
+              interactionHistory: [],
+              possibleRanks: piece.isRevealed
+                ? undefined
+                : this.initializeProbabilities(),
             });
+          }
+
+          // Update flag candidates in enemy territory
+          if (row <= 3 && existing && existing.turnsStationary >= 2) {
+            this.flagCandidates.add(key);
           }
         }
       }
@@ -91,6 +457,455 @@ export class StrategoAI {
         this.enemyMemory.delete(key);
       }
     }
+  }
+
+  // THREAT CHAIN ANALYSIS: Find multi-move threats to critical positions
+  private analyzeThreatChains(gameState: GameState): ThreatChain[] {
+    if (this.difficulty === "easy") return [];
+
+    const threats: ThreatChain[] = [];
+    const flagPos = this.findOurFlag(gameState);
+    if (!flagPos) return threats;
+
+    // Check each enemy piece for potential threat paths
+    for (let row = 0; row < 10; row++) {
+      for (let col = 0; col < 10; col++) {
+        const piece = gameState.board[row][col].piece;
+        if (piece && piece.player === 1 && !piece.isCaptured) {
+          if (piece.rank === "Bomb" || piece.rank === "Flag") continue;
+
+          const currentPos = { row, col };
+          const distance = this.getDistanceToPosition(currentPos, flagPos);
+
+          // Only analyze threats within reasonable distance
+          if (distance <= 5) {
+            const threat = this.calculateThreatPath(
+              currentPos,
+              flagPos,
+              piece,
+              gameState,
+            );
+            if (threat) {
+              threats.push(threat);
+            }
+          }
+        }
+      }
+    }
+
+    // Sort by severity (most dangerous first)
+    threats.sort((a, b) => b.severity - a.severity);
+    return threats;
+  }
+
+  private calculateThreatPath(
+    from: Position,
+    target: Position,
+    piece: GamePiece,
+    gameState: GameState,
+  ): ThreatChain | null {
+    const distance = this.getDistanceToPosition(from, target);
+    let severity = 0;
+
+    // Base severity on distance (closer = more severe)
+    severity = Math.max(0, 50 - distance * 10);
+
+    // Increase severity for strong pieces
+    if (piece.isRevealed) {
+      severity += piece.rankValue * 2;
+    } else {
+      severity += 10; // Unknown pieces are moderately threatening
+    }
+
+    // Check if path is relatively clear
+    let blockers = 0;
+    const dx = target.col - from.col;
+    const dy = target.row - from.row;
+    const steps = Math.max(Math.abs(dx), Math.abs(dy));
+
+    for (let i = 1; i <= steps; i++) {
+      const checkRow = from.row + Math.round((dy * i) / steps);
+      const checkCol = from.col + Math.round((dx * i) / steps);
+      if (checkRow >= 0 && checkRow < 10 && checkCol >= 0 && checkCol < 10) {
+        const square = gameState.board[checkRow][checkCol];
+        if (square.piece && square.piece.player === 2) {
+          blockers++;
+        }
+      }
+    }
+
+    // Reduce severity if path is blocked
+    severity -= blockers * 8;
+
+    // Only return if severity is meaningful
+    if (severity < 10) return null;
+
+    // Simple path (straight line approximation)
+    const path: Position[] = [];
+    for (let i = 1; i <= distance; i++) {
+      const ratio = i / distance;
+      path.push({
+        row: Math.round(from.row + dy * ratio),
+        col: Math.round(from.col + dx * ratio),
+      });
+    }
+
+    return {
+      targetPosition: target,
+      threatPath: path,
+      threateningPiece: from,
+      movesAway: distance,
+      severity,
+    };
+  }
+
+  // FORMATION RECOGNITION: Detect enemy tactical formations
+  private recognizeFormations(gameState: GameState): Formation[] {
+    if (this.difficulty === "easy") return [];
+
+    const formations: Formation[] = [];
+
+    // Detect bomb screens
+    const bombScreen = this.detectBombScreen();
+    if (bombScreen) formations.push(bombScreen);
+
+    // Detect scout lines
+    const scoutLine = this.detectScoutLine(gameState);
+    if (scoutLine) formations.push(scoutLine);
+
+    // Detect aggressive wedges
+    const wedge = this.detectAggressiveWedge(gameState);
+    if (wedge) formations.push(wedge);
+
+    // Detect defensive boxes
+    const box = this.detectDefensiveBox(gameState);
+    if (box) formations.push(box);
+
+    return formations;
+  }
+
+  private detectBombScreen(): Formation | null {
+    const immobilePieces = this.getSuspectedImmobilePieces();
+    const bombCandidates = immobilePieces.filter((pos) => pos.row <= 3);
+
+    if (bombCandidates.length < 3) return null;
+
+    // Check for horizontal or vertical alignment
+    const horizontalGroups = new Map<number, Position[]>();
+    const verticalGroups = new Map<number, Position[]>();
+
+    for (const pos of bombCandidates) {
+      const hGroup = horizontalGroups.get(pos.row) || [];
+      hGroup.push(pos);
+      horizontalGroups.set(pos.row, hGroup);
+
+      const vGroup = verticalGroups.get(pos.col) || [];
+      vGroup.push(pos);
+      verticalGroups.set(pos.col, vGroup);
+    }
+
+    // Look for 3+ bombs in a line
+    for (const group of horizontalGroups.values()) {
+      if (group.length >= 3) {
+        const center = group[Math.floor(group.length / 2)];
+        return {
+          type: "bomb-screen",
+          centerPosition: center,
+          pieces: group,
+          strength: group.length * 15,
+        };
+      }
+    }
+
+    for (const group of verticalGroups.values()) {
+      if (group.length >= 3) {
+        const center = group[Math.floor(group.length / 2)];
+        return {
+          type: "bomb-screen",
+          centerPosition: center,
+          pieces: group,
+          strength: group.length * 15,
+        };
+      }
+    }
+
+    return null;
+  }
+
+  private detectScoutLine(gameState: GameState): Formation | null {
+    const scouts: Position[] = [];
+
+    for (let row = 0; row < 10; row++) {
+      for (let col = 0; col < 10; col++) {
+        const piece = gameState.board[row][col].piece;
+        if (
+          piece &&
+          piece.player === 1 &&
+          piece.isRevealed &&
+          piece.rank === "Scout"
+        ) {
+          scouts.push({ row, col });
+        }
+      }
+    }
+
+    if (scouts.length < 3) return null;
+
+    // Check if scouts form a line (similar row or column)
+    const avgRow = scouts.reduce((sum, p) => sum + p.row, 0) / scouts.length;
+    const rowVariance =
+      scouts.reduce((sum, p) => sum + Math.pow(p.row - avgRow, 2), 0) /
+      scouts.length;
+
+    if (rowVariance < 2) {
+      // Horizontal scout line
+      return {
+        type: "scout-line",
+        centerPosition: scouts[Math.floor(scouts.length / 2)],
+        pieces: scouts,
+        strength: scouts.length * 8,
+      };
+    }
+
+    return null;
+  }
+
+  private detectAggressiveWedge(gameState: GameState): Formation | null {
+    // Look for enemy pieces forming a wedge into our territory
+    const advancedPieces: Position[] = [];
+
+    for (let row = 5; row < 10; row++) {
+      // Our territory
+      for (let col = 0; col < 10; col++) {
+        const piece = gameState.board[row][col].piece;
+        if (piece && piece.player === 1 && !piece.isCaptured) {
+          advancedPieces.push({ row, col });
+        }
+      }
+    }
+
+    if (advancedPieces.length < 3) return null;
+
+    // Find the most advanced piece
+    const mostAdvanced = advancedPieces.reduce((max, p) =>
+      p.row > max.row ? p : max,
+    );
+
+    // Check if other pieces support it
+    let supporters = 0;
+    for (const pos of advancedPieces) {
+      const distance = this.getDistanceToPosition(pos, mostAdvanced);
+      if (distance <= 2 && distance > 0) {
+        supporters++;
+      }
+    }
+
+    if (supporters >= 2) {
+      return {
+        type: "aggressive-wedge",
+        centerPosition: mostAdvanced,
+        pieces: advancedPieces,
+        strength: (10 - mostAdvanced.row) * 10 + supporters * 5,
+      };
+    }
+
+    return null;
+  }
+
+  private detectDefensiveBox(gameState: GameState): Formation | null {
+    // Detect our own defensive formation around flag
+    const flagPos = this.findOurFlag(gameState);
+    if (!flagPos) return null;
+
+    const defenders: Position[] = [];
+    for (let row = 0; row < 10; row++) {
+      for (let col = 0; col < 10; col++) {
+        const piece = gameState.board[row][col].piece;
+        if (piece && piece.player === 2 && !piece.isCaptured) {
+          const distance = this.getDistanceToPosition({ row, col }, flagPos);
+          if (distance >= 1 && distance <= 2) {
+            defenders.push({ row, col });
+          }
+        }
+      }
+    }
+
+    if (defenders.length >= 4) {
+      return {
+        type: "defensive-box",
+        centerPosition: flagPos,
+        pieces: defenders,
+        strength: defenders.length * 10,
+      };
+    }
+
+    return null;
+  }
+
+  // ENDGAME SPECIALIZATION: Optimize for endgame scenarios
+  private getEndgameBonus(move: MoveOption, gameState: GameState): number {
+    if (this.gamePhase !== "endgame") return 0;
+
+    let bonus = 0;
+    const targetSquare = gameState.board[move.to.row][move.to.col];
+    const targetPiece = targetSquare.piece;
+
+    // Count remaining mobile pieces
+    let ourMobile = 0;
+    let enemyMobile = 0;
+    for (let row = 0; row < 10; row++) {
+      for (let col = 0; col < 10; col++) {
+        const piece = gameState.board[row][col].piece;
+        if (
+          piece &&
+          !piece.isCaptured &&
+          piece.rank !== "Bomb" &&
+          piece.rank !== "Flag"
+        ) {
+          if (piece.player === 2) ourMobile++;
+          else enemyMobile++;
+        }
+      }
+    }
+
+    // PRIORITY 1: Flag hunting becomes paramount
+    const flagCandidates = this.triangulateFlag();
+    if (flagCandidates.length > 0) {
+      for (const candidate of flagCandidates) {
+        const distanceBefore = this.getDistanceToPosition(move.from, candidate);
+        const distanceAfter = this.getDistanceToPosition(move.to, candidate);
+        if (distanceAfter < distanceBefore) {
+          bonus += 40; // Strong bonus for approaching flag candidates
+        }
+      }
+    }
+
+    // PRIORITY 2: Systematic search with remaining scouts
+    if (move.piece.rank === "Scout" && !targetPiece) {
+      // Scouts should systematically check unexplored enemy territory
+      if (move.to.row <= 3) {
+        bonus += 25;
+      }
+    }
+
+    // PRIORITY 3: Trade aggressively when ahead
+    if (targetPiece && targetPiece.player === 1) {
+      if (ourMobile > enemyMobile + 2) {
+        // We're ahead - trade freely
+        bonus += 30;
+      } else if (enemyMobile > ourMobile + 2) {
+        // We're behind - avoid trades unless favorable
+        if (
+          !targetPiece.isRevealed ||
+          move.piece.rankValue <= targetPiece.rankValue
+        ) {
+          bonus -= 20;
+        }
+      }
+    }
+
+    // PRIORITY 4: Calculate forced wins
+    if (ourMobile > enemyMobile && move.piece.rankValue >= 7) {
+      // Strong pieces should advance aggressively
+      if (move.to.row < move.from.row) {
+        bonus += 20;
+      }
+    }
+
+    // PRIORITY 5: Prevent stalemates - keep pieces mobile
+    const mobilityBefore = this.getValidMovesForPiece(
+      move.piece,
+      move.from,
+      gameState,
+    ).length;
+    const mobilityAfter = this.getValidMovesForPiece(
+      move.piece,
+      move.to,
+      gameState,
+    ).length;
+    if (mobilityAfter > mobilityBefore) {
+      bonus += 15; // Prefer moves that increase future mobility
+    }
+
+    return bonus;
+  }
+
+  private initializeProbabilities(): Map<string, number> {
+    // Initialize equal probabilities for all mobile ranks
+    const probs = new Map<string, number>();
+    const mobileRanks = [
+      "Spy",
+      "Scout",
+      "Miner",
+      "Sergeant",
+      "Lieutenant",
+      "Captain",
+      "Major",
+      "Colonel",
+      "General",
+      "Marshal",
+    ];
+
+    mobileRanks.forEach((rank) => probs.set(rank, 1.0 / mobileRanks.length));
+    return probs;
+  }
+
+  private triangulateFlag(): Position[] {
+    if (this.difficulty === "easy") return [];
+
+    const candidates: Position[] = [];
+    const immobilePieces = this.getSuspectedImmobilePieces();
+
+    // Flag must be in enemy back rows (0-3)
+    const backRowImmobile = immobilePieces.filter((pos) => pos.row <= 3);
+
+    if (backRowImmobile.length === 0) {
+      // No stationary pieces detected yet - flag could be anywhere in back rows
+      return candidates;
+    }
+
+    // Flag is typically surrounded by bombs or protected pieces
+    for (const pos of backRowImmobile) {
+      let protectionScore = 0;
+      const key = this.positionKey(pos);
+      const memory = this.enemyMemory.get(key);
+
+      if (!memory) continue;
+
+      // Higher stationary time = more likely bomb or flag
+      protectionScore += Math.min(memory.turnsStationary, 10);
+
+      // Count nearby immobile pieces
+      let nearbyImmobile = 0;
+      for (const other of backRowImmobile) {
+        const distance = this.getDistanceToPosition(pos, other);
+        if (distance > 0 && distance <= 2) {
+          nearbyImmobile++;
+        }
+      }
+      protectionScore += nearbyImmobile * 5;
+
+      // Corners and edges are common flag positions
+      if (pos.col === 0 || pos.col === 9 || pos.row === 0 || pos.row === 1) {
+        protectionScore += 3;
+      }
+
+      // If highly protected, it's a flag candidate
+      if (protectionScore >= 12) {
+        candidates.push(pos);
+      }
+    }
+
+    // Sort by most likely (most protected)
+    candidates.sort((a, b) => {
+      const aKey = this.positionKey(a);
+      const bKey = this.positionKey(b);
+      const aMemory = this.enemyMemory.get(aKey);
+      const bMemory = this.enemyMemory.get(bKey);
+      return (bMemory?.turnsStationary || 0) - (aMemory?.turnsStationary || 0);
+    });
+
+    return candidates.slice(0, 5); // Return top 5 candidates
   }
 
   private getSuspectedImmobilePieces(): Position[] {
@@ -116,7 +931,7 @@ export class StrategoAI {
   private isThreatenedByKnownEnemy(
     position: Position,
     ourPiece: GamePiece,
-    gameState: GameState
+    gameState: GameState,
   ): boolean {
     if (this.difficulty === "easy") return false;
 
@@ -219,7 +1034,7 @@ export class StrategoAI {
 
   private canDefendPosition(
     position: Position,
-    gameState: GameState
+    gameState: GameState,
   ): Position[] {
     if (this.difficulty === "easy") return [];
 
@@ -245,7 +1060,7 @@ export class StrategoAI {
           const validMoves = this.getValidMovesForPiece(
             piece,
             { row, col },
-            gameState
+            gameState,
           );
 
           // Check if this piece can move to defend
@@ -287,7 +1102,7 @@ export class StrategoAI {
             checkCol < 10
           ) {
             const otherPos = suspectedImmobile.find(
-              (p) => p.row === checkRow && p.col === checkCol
+              (p) => p.row === checkRow && p.col === checkCol,
             );
             if (otherPos) nearbyStationary++;
           }
@@ -305,7 +1120,7 @@ export class StrategoAI {
 
   private evaluateTradeValue(
     ourPiece: GamePiece,
-    enemyPiece: GamePiece
+    enemyPiece: GamePiece,
   ): number {
     // Positive = good trade for us, Negative = bad trade
 
@@ -317,8 +1132,11 @@ export class StrategoAI {
       return 50; // Good trade - only Miner can remove bombs
     }
 
-    // General value difference
-    return enemyPiece.rankValue - ourPiece.rankValue;
+    // Use dynamic piece values based on context
+    const ourValue = this.getDynamicPieceValue(ourPiece);
+    const enemyValue = this.getDynamicPieceValue(enemyPiece);
+
+    return enemyValue - ourValue;
   }
 
   private canFollowUpAttack(position: Position, gameState: GameState): boolean {
@@ -353,7 +1171,7 @@ export class StrategoAI {
   private shouldProbeUnknown(
     ourPiece: GamePiece,
     targetPosition: Position,
-    gameState: GameState
+    gameState: GameState,
   ): boolean {
     if (this.difficulty === "easy") return false;
 
@@ -375,7 +1193,7 @@ export class StrategoAI {
     if (ourPiece.rank === "Miner") {
       const bombClusters = this.getBombClusterAreas();
       return bombClusters.some(
-        (cluster) => this.getDistanceToPosition(cluster, targetPosition) <= 1
+        (cluster) => this.getDistanceToPosition(cluster, targetPosition) <= 1,
       );
     }
 
@@ -395,7 +1213,7 @@ export class StrategoAI {
     // Check if position is a center square
     if (
       centerSquares.some(
-        (c) => c.row === position.row && c.col === position.col
+        (c) => c.row === position.row && c.col === position.col,
       )
     ) {
       return 15; // Strong bonus for center control
@@ -403,7 +1221,7 @@ export class StrategoAI {
 
     // Adjacent to center also good
     const distanceToCenter = Math.min(
-      ...centerSquares.map((c) => this.getDistanceToPosition(position, c))
+      ...centerSquares.map((c) => this.getDistanceToPosition(position, c)),
     );
 
     if (distanceToCenter === 1) return 8;
@@ -414,7 +1232,7 @@ export class StrategoAI {
   // POSITIONAL PLAY: Check if forming defensive formation around flag
   private isDefensiveFormation(
     position: Position,
-    gameState: GameState
+    gameState: GameState,
   ): boolean {
     const flagPos = this.findOurFlag(gameState);
     if (!flagPos) return false;
@@ -428,7 +1246,7 @@ export class StrategoAI {
   private isFlankingMove(
     moveFrom: Position,
     moveTo: Position,
-    gameState: GameState
+    gameState: GameState,
   ): boolean {
     // Check if we're moving to the side of an enemy piece
     for (let row = 0; row < 10; row++) {
@@ -460,7 +1278,7 @@ export class StrategoAI {
   // SCOUT INTELLIGENCE: Check if scout should retreat after revealing
   private shouldScoutRetreat(
     position: Position,
-    gameState: GameState
+    gameState: GameState,
   ): boolean {
     const piece = gameState.board[position.row][position.col].piece;
     if (!piece || piece.rank !== "Scout") return false;
@@ -496,6 +1314,13 @@ export class StrategoAI {
 
   // FLAG HUNTING: Identify heavily protected areas (likely flag location)
   private getProtectedAreas(): Position[] {
+    // Use triangulation for better flag detection
+    const flagCandidates = this.triangulateFlag();
+    if (flagCandidates.length > 0) {
+      return flagCandidates;
+    }
+
+    // Fallback to old method if triangulation hasn't identified candidates yet
     const protectedZones: Position[] = [];
     const immobilePieces = this.getSuspectedImmobilePieces();
 
@@ -524,7 +1349,7 @@ export class StrategoAI {
   // MULTI-MOVE PLANNING: Evaluate if move opens up future opportunities
   private evaluateFutureOpportunities(
     move: MoveOption,
-    gameState: GameState
+    gameState: GameState,
   ): number {
     if (this.difficulty !== "hard") return 0;
 
@@ -537,7 +1362,7 @@ export class StrategoAI {
     const nextMoves = this.getValidMovesForPiece(
       move.piece,
       move.to,
-      gameState
+      gameState,
     );
 
     for (const nextPos of nextMoves) {
@@ -572,7 +1397,7 @@ export class StrategoAI {
   private getValidMovesForPiece(
     piece: GamePiece,
     position: Position,
-    gameState: GameState
+    gameState: GameState,
   ): Position[] {
     const validMoves: Position[] = [];
 
@@ -614,7 +1439,7 @@ export class StrategoAI {
 
   private getAllPossibleMoves(
     gameState: GameState,
-    player: 1 | 2
+    player: 1 | 2,
   ): MoveOption[] {
     const moves: MoveOption[] = [];
 
@@ -625,7 +1450,7 @@ export class StrategoAI {
           const validMoves = this.getValidMovesForPiece(
             piece,
             { row, col },
-            gameState
+            gameState,
           );
           for (const move of validMoves) {
             moves.push({
@@ -651,6 +1476,111 @@ export class StrategoAI {
     // Don't move Flag or Bomb (shouldn't happen, but safety check)
     if (move.piece.rank === "Flag" || move.piece.rank === "Bomb") {
       return -1000;
+    }
+
+    // OPENING STRATEGY: Exploit detected weaknesses
+    if (this.gamePhase === "opening" && this.enemyStrategy) {
+      const strategy = this.enemyStrategy;
+
+      // Attack weak side
+      if (strategy.weakSide === "left" && move.to.col <= 3) {
+        score += 18;
+      } else if (strategy.weakSide === "right" && move.to.col >= 6) {
+        score += 18;
+      } else if (
+        strategy.weakSide === "center" &&
+        move.to.col >= 4 &&
+        move.to.col <= 5
+      ) {
+        score += 18;
+      }
+
+      // Counter aggressive setups by fortifying defense
+      if (strategy.setupPattern === "aggressive") {
+        const flagPos = this.findOurFlag(gameState);
+        if (flagPos) {
+          const distance = this.getDistanceToPosition(move.to, flagPos);
+          if (distance <= 2 && move.piece.rankValue >= 6) {
+            score += 15; // Strengthen defense against aggression
+          }
+        }
+      }
+
+      // Counter defensive setups with scouts and miners
+      if (strategy.setupPattern === "defensive") {
+        if (
+          (move.piece.rank === "Scout" || move.piece.rank === "Miner") &&
+          move.to.row <= 4
+        ) {
+          score += 20; // Probe defensive setups
+        }
+      }
+
+      // Target estimated flag zone
+      if (strategy.estimatedFlagZone.length > 0) {
+        const inFlagZone = strategy.estimatedFlagZone.some(
+          (pos) => this.getDistanceToPosition(move.to, pos) <= 1,
+        );
+        if (inFlagZone) {
+          if (move.piece.rank === "Miner") {
+            score += 35; // Miners should investigate flag zones
+          } else if (move.piece.rankValue >= 7) {
+            score += 25; // Strong pieces approach flag
+          }
+        }
+      }
+    }
+
+    // THREAT CHAIN RESPONSE: Counter multi-move threats
+    if (this.difficulty === "hard") {
+      const threats = this.analyzeThreatChains(gameState);
+      if (threats.length > 0) {
+        const topThreat = threats[0];
+
+        // Block threat paths
+        for (const pathPos of topThreat.threatPath) {
+          if (move.to.row === pathPos.row && move.to.col === pathPos.col) {
+            score += 30; // Block the threat path
+            break;
+          }
+        }
+
+        // Intercept threatening piece
+        const distanceToThreat = this.getDistanceToPosition(
+          move.to,
+          topThreat.threateningPiece,
+        );
+        if (distanceToThreat === 1 && move.piece.rankValue >= 6) {
+          score += 25; // Move to challenge the threat
+        }
+      }
+    }
+
+    // FORMATION AWARENESS: Respond to detected formations
+    if (this.difficulty !== "easy" && this.detectedFormations.length > 0) {
+      for (const formation of this.detectedFormations) {
+        if (formation.type === "bomb-screen") {
+          // Send miners to clear bomb screens
+          if (move.piece.rank === "Miner") {
+            const distToFormation = this.getDistanceToPosition(
+              move.to,
+              formation.centerPosition,
+            );
+            if (distToFormation <= 2) {
+              score += 30;
+            }
+          }
+        } else if (formation.type === "aggressive-wedge") {
+          // Counter wedges with defensive positioning
+          const distToWedge = this.getDistanceToPosition(
+            move.to,
+            formation.centerPosition,
+          );
+          if (distToWedge === 1 && move.piece.rankValue >= 6) {
+            score += 28; // Block the wedge
+          }
+        }
+      }
     }
 
     // MEDIUM/HARD: HIGH PRIORITY - Escape if this piece is threatened
@@ -688,13 +1618,13 @@ export class StrategoAI {
       for (const threatenedPos of threatenedPieces) {
         const defenders = this.canDefendPosition(threatenedPos, gameState);
         const isDefender = defenders.some(
-          (def) => def.row === move.from.row && def.col === move.from.col
+          (def) => def.row === move.from.row && def.col === move.from.col,
         );
 
         if (isDefender) {
           const distanceToThreatened = this.getDistanceToPosition(
             move.to,
-            threatenedPos
+            threatenedPos,
           );
           if (distanceToThreatened === 1) {
             score += 35; // Bonus for supporting threatened pieces
@@ -735,7 +1665,7 @@ export class StrategoAI {
     if (this.difficulty !== "easy") {
       const suspectedImmobile = this.getSuspectedImmobilePieces();
       const isSuspectedImmobile = suspectedImmobile.some(
-        (pos) => pos.row === move.to.row && pos.col === move.to.col
+        (pos) => pos.row === move.to.row && pos.col === move.to.col,
       );
 
       if (isSuspectedImmobile) {
@@ -747,7 +1677,7 @@ export class StrategoAI {
             const bombClusters = this.getBombClusterAreas();
             if (
               bombClusters.some(
-                (c) => c.row === move.to.row && c.col === move.to.col
+                (c) => c.row === move.to.row && c.col === move.to.col,
               )
             ) {
               score += 25; // Clearing bomb clusters is strategic
@@ -763,7 +1693,7 @@ export class StrategoAI {
       // FLAG HUNTING: Target heavily protected areas
       const protectedAreas = this.getProtectedAreas();
       const isProtectedArea = protectedAreas.some(
-        (pos) => pos.row === move.to.row && pos.col === move.to.col
+        (pos) => pos.row === move.to.row && pos.col === move.to.col,
       );
 
       if (isProtectedArea) {
@@ -1050,11 +1980,17 @@ export class StrategoAI {
       score += futureScore;
     }
 
+    // ENDGAME SPECIALIZATION: Apply endgame bonuses
+    if (this.difficulty !== "easy") {
+      const endgameBonus = this.getEndgameBonus(move, gameState);
+      score += endgameBonus;
+    }
+
     return score;
   }
 
   public getBestMove(
-    gameState: GameState
+    gameState: GameState,
   ): { from: Position; to: Position } | null {
     // Update memory based on current board state
     this.updateMemory(gameState);
@@ -1083,7 +2019,7 @@ export class StrategoAI {
 
     const topMoves = allMoves.slice(
       0,
-      Math.min(topMovesCount, allMoves.length)
+      Math.min(topMovesCount, allMoves.length),
     );
     const selectedMove = topMoves[Math.floor(Math.random() * topMoves.length)];
 
