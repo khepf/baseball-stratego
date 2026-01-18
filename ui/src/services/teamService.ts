@@ -9,7 +9,7 @@ interface TeamRecord {
   year: number;
 }
 
-export const fetchRandomTeamsFromFirebase = async (
+export const fetchRandomTeamsFromJSON = async (
   count: number = 66,
 ): Promise<TeamData[]> => {
   try {

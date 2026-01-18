@@ -9,7 +9,7 @@ import type {
 import { RANK_VALUES } from "../types/game.ts";
 import { StrategoAI } from "../utils/ai";
 import { saveGameResult } from "../services/leaderboardService";
-import { fetchRandomTeamsFromFirebase } from "../services/teamService";
+import { fetchRandomTeamsFromJSON } from "../services/teamService";
 import { serverTimestamp, type FieldValue } from "firebase/firestore";
 import type { User as FirebaseUser } from "firebase/auth";
 
@@ -85,7 +85,7 @@ export const useGameLogic = (currentUser?: FirebaseUser | null) => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await fetchRandomTeamsFromFirebase(66);
+      const data = await fetchRandomTeamsFromJSON(66);
       setTeamData(data);
       setupPieces(data);
 
